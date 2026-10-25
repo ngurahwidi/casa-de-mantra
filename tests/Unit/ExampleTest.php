@@ -2,15 +2,14 @@
 
 namespace Tests\Unit;
 
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
-    /**
-     * A basic test example.
-     */
-    public function test_that_true_is_true(): void
+    public function test_application_uses_utc_timezone_and_english_locale(): void
     {
-        $this->assertTrue(true);
+        $this->assertSame('UTC', config('app.timezone'));
+        $this->assertSame('en', config('app.locale'));
+        $this->assertSame('en', config('app.fallback_locale'));
     }
 }
