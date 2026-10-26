@@ -44,6 +44,14 @@ class RoomType extends Model implements HasMedia
     }
 
     /**
+     * @return HasMany<RatePlan, $this>
+     */
+    public function ratePlans(): HasMany
+    {
+        return $this->hasMany(RatePlan::class);
+    }
+
+    /**
      * @return BelongsToMany<Amenity, $this>
      */
     public function amenities(): BelongsToMany
