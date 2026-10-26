@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use RuntimeException;
@@ -27,6 +28,7 @@ class AdminUserSeeder extends Seeder
             [
                 'name' => config('admin.name'),
                 'password' => $password,
+                'role' => UserRole::Owner,
                 'email_verified_at' => now(),
             ],
         );

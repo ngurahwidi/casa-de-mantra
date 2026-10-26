@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\UserRole;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -12,7 +13,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password'])]
+/**
+ * @property UserRole $role
+ */
+#[Fillable(['name', 'email', 'password', 'role'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
@@ -21,11 +25,16 @@ class User extends Authenticatable implements FilamentUser
 
     /**
      * Every user is an admin; there is no public registration.
-     * Role-based restrictions arrive with the `role` column (T2.1).
+     * Owner/staff differences are enforced per resource by policies (T5.6).
      */
     public function canAccessPanel(Panel $panel): bool
     {
         return true;
+    }
+
+    public function isOwner(): bool
+    {
+        return $this->role === UserRole::Owner;
     }
 
     /**
@@ -38,6 +47,7 @@ class User extends Authenticatable implements FilamentUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'role' => UserRole::class,
         ];
     }
 }
