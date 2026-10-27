@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['room_type_id', 'code', 'status'])]
 class Unit extends Model
@@ -23,6 +24,14 @@ class Unit extends Model
     public function roomType(): BelongsTo
     {
         return $this->belongsTo(RoomType::class);
+    }
+
+    /**
+     * @return HasMany<AvailabilityBlock, $this>
+     */
+    public function availabilityBlocks(): HasMany
+    {
+        return $this->hasMany(AvailabilityBlock::class);
     }
 
     /**
