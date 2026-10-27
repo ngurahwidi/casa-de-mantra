@@ -35,6 +35,14 @@ class Unit extends Model
     }
 
     /**
+     * @return HasMany<ReservationRoom, $this>
+     */
+    public function reservationRooms(): HasMany
+    {
+        return $this->hasMany(ReservationRoom::class);
+    }
+
+    /**
      * @param  Builder<Unit>  $query
      */
     public function scopeActive(Builder $query): void

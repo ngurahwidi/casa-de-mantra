@@ -60,6 +60,14 @@ class RoomType extends Model implements HasMedia
     }
 
     /**
+     * @return HasMany<ReservationRoom, $this>
+     */
+    public function reservationRooms(): HasMany
+    {
+        return $this->hasMany(ReservationRoom::class);
+    }
+
+    /**
      * @return BelongsToMany<Amenity, $this>
      */
     public function amenities(): BelongsToMany
