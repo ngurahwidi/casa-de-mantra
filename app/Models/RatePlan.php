@@ -51,6 +51,14 @@ class RatePlan extends Model
     }
 
     /**
+     * @return HasMany<ReservationRoom, $this>
+     */
+    public function reservationRooms(): HasMany
+    {
+        return $this->hasMany(ReservationRoom::class);
+    }
+
+    /**
      * @param  Builder<RatePlan>  $query
      */
     public function scopeActive(Builder $query): void

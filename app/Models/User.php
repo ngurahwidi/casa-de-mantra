@@ -10,6 +10,7 @@ use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -35,6 +36,22 @@ class User extends Authenticatable implements FilamentUser
     public function isOwner(): bool
     {
         return $this->role === UserRole::Owner;
+    }
+
+    /**
+     * @return HasMany<ReservationStatusLog, $this>
+     */
+    public function reservationStatusLogs(): HasMany
+    {
+        return $this->hasMany(ReservationStatusLog::class, 'admin_user_id');
+    }
+
+    /**
+     * @return HasMany<Payment, $this>
+     */
+    public function verifiedPayments(): HasMany
+    {
+        return $this->hasMany(Payment::class, 'verified_by');
     }
 
     /**
