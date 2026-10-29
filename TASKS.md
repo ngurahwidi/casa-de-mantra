@@ -52,7 +52,8 @@ Website villa untuk klien hospitality. Tamu mengirim **permintaan reservasi (req
 ### Status reservasi
 
 `pending` → `awaiting_payment` → `confirmed` → `completed`
-Cabang: `pending → rejected`, `pending|awaiting_payment → cancelled`, `awaiting_payment → expired`.
+Cabang: `pending → rejected`, `pending|awaiting_payment|confirmed → cancelled`, `awaiting_payment → expired`, `expired → awaiting_payment` (reactivate, T4.7).
+Membatalkan reservasi `confirmed` tidak memicu refund (non-refundable); refund pengecualian dicatat manual.
 
 ### Aturan ketersediaan
 
