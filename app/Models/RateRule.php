@@ -8,7 +8,13 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property Carbon $start_date
+ * @property Carbon|null $end_date
+ * @property string $price_per_night
+ */
 #[Fillable([
     'rate_plan_id',
     'name',

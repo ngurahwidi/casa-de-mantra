@@ -11,6 +11,11 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property TaxFeeType $type
+ * @property string $value
+ * @property TaxFeeAppliesTo $applies_to
+ */
 #[Fillable([
     'name',
     'type',
