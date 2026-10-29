@@ -46,6 +46,33 @@ class PropertyProfileTest extends TestCase
         $this->assertSame('After', PropertyProfile::current()->name);
     }
 
+    public function test_current_survives_a_store_that_serializes_values(): void
+    {
+        // The dev/production store; it refuses to unserialize objects (cache.serializable_classes = false).
+        config(['cache.default' => 'database']);
+
+        PropertyProfile::factory()->create([
+            'name' => 'Serialized Villa',
+            'bank_account_info' => ['bank' => 'Bank Example'],
+        ]);
+        PropertyProfile::current();
+
+        DB::table('property_profiles')->update(['name' => 'Changed Behind The Back']);
+        $cached = PropertyProfile::current();
+
+        $this->assertInstanceOf(PropertyProfile::class, $cached);
+        $this->assertTrue($cached->exists);
+        $this->assertSame('Serialized Villa', $cached->name);
+        $this->assertSame(PropertyType::Villa, $cached->type);
+        $this->assertSame(['bank' => 'Bank Example'], $cached->bank_account_info);
+        $this->assertFalse($cached->isDirty());
+
+        $cached->update(['name' => 'Saved From Cache']);
+
+        $this->assertSame(1, PropertyProfile::count());
+        $this->assertSame('Saved From Cache', PropertyProfile::current()->name);
+    }
+
     public function test_deleting_the_profile_clears_the_cache(): void
     {
         $profile = PropertyProfile::factory()->create();

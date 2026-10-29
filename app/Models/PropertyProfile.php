@@ -58,13 +58,18 @@ class PropertyProfile extends Model
 
     /**
      * The single property profile, cached until it is saved or deleted.
+     *
+     * Only the raw attributes are cached: the cache refuses to unserialize objects
+     * (cache.serializable_classes = false), so the model is rebuilt on every read.
      */
     public static function current(): static
     {
-        return Cache::rememberForever(
+        $attributes = Cache::rememberForever(
             static::CACHE_KEY,
-            fn () => static::query()->findOrFail(static::ID),
+            fn () => static::query()->findOrFail(static::ID)->getAttributes(),
         );
+
+        return static::query()->newModelInstance()->newFromBuilder($attributes);
     }
 
     public static function forgetCurrent(): void

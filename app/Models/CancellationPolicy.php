@@ -15,6 +15,9 @@ class CancellationPolicy extends Model
     /** @use HasFactory<CancellationPolicyFactory> */
     use HasFactory, HasUuids;
 
+    /** The only policy sold in phase 1; auto-created rate plans link to it by this name. */
+    public const NON_REFUNDABLE = 'Non-Refundable';
+
     /**
      * MySQL JSON columns cannot carry a literal default, so it lives here.
      *
