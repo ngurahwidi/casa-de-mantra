@@ -2,7 +2,6 @@
 
 namespace App\Actions\Reservation;
 
-use App\Contracts\AvailabilityProvider;
 use App\Enums\ReservationPaymentStatus;
 use App\Enums\ReservationStatus;
 use App\Exceptions\Reservation\DatesNotAvailableException;
@@ -11,10 +10,9 @@ use App\Exceptions\Reservation\PaymentRequiredException;
 use App\Models\Guest;
 use App\Models\PropertyProfile;
 use App\Models\Reservation;
-use App\Models\ReservationRoom;
-use App\Models\Unit;
 use App\Models\User;
 use App\Services\Reservation\ReservationStateMachine;
+use App\Services\Reservation\UnitAllocator;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -26,10 +24,10 @@ use Illuminate\Support\Facades\DB;
  *
  * Availability is checked again under lock, as in ApproveReservation and in the same order
  * (reservation, its rooms, every unit of their room types), so a block added since approval
- * is noticed and concurrent approvals and confirmations cannot deadlock. A room keeps its unit
- * while that unit is still free, otherwise it moves to another free unit of its room type.
- * Run it in a transaction of its own: the locks must come before any plain read, see
- * ApproveReservation.
+ * is noticed and concurrent approvals and confirmations cannot deadlock (see UnitAllocator).
+ * A room keeps its unit while that unit is still free, otherwise it moves to another free unit
+ * of its room type. Run it in a transaction of its own: the locks must come before any plain
+ * read, see ApproveReservation.
  *
  * On confirmation the guest record takes the contact details given with this reservation
  * (see CreateReservationRequest). The email is left as is, since guests are matched by it.
@@ -37,7 +35,7 @@ use Illuminate\Support\Facades\DB;
 class ConfirmReservation
 {
     public function __construct(
-        private readonly AvailabilityProvider $availability,
+        private readonly UnitAllocator $units,
         private readonly ReservationStateMachine $stateMachine,
     ) {}
 
@@ -67,34 +65,7 @@ class ConfirmReservation
                 throw PaymentRequiredException::forConfirmation($locked->payment_status);
             }
 
-            $rooms = ReservationRoom::query()
-                ->whereBelongsTo($locked)
-                ->orderBy('id')
-                ->lockForUpdate()
-                ->get();
-
-            Unit::query()
-                ->whereIn('room_type_id', $rooms->pluck('room_type_id')->unique())
-                ->orderBy('id')
-                ->lockForUpdate()
-                ->get();
-
-            $assigned = [];
-
-            foreach ($rooms as $room) {
-                $free = $this->availability
-                    ->availableUnits($room->roomType()->firstOrFail(), $locked->check_in, $locked->check_out, $locked)
-                    ->reject(fn (Unit $unit) => in_array($unit->id, $assigned, true));
-
-                $unit = $free->firstWhere('id', $room->unit_id) ?? $free->first();
-
-                if ($unit === null) {
-                    throw DatesNotAvailableException::taken();
-                }
-
-                $assigned[] = $unit->id;
-                $room->update(['unit_id' => $unit->id]);
-            }
+            $rooms = $this->units->allocate($locked);
 
             $reservation->confirmed_at = now();
 

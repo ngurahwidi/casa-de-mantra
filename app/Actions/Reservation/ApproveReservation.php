@@ -2,16 +2,14 @@
 
 namespace App\Actions\Reservation;
 
-use App\Contracts\AvailabilityProvider;
 use App\Enums\ReservationStatus;
 use App\Exceptions\Reservation\DatesNotAvailableException;
 use App\Exceptions\Reservation\InvalidStatusTransitionException;
 use App\Models\PropertyProfile;
 use App\Models\Reservation;
-use App\Models\ReservationRoom;
-use App\Models\Unit;
 use App\Models\User;
 use App\Services\Reservation\ReservationStateMachine;
+use App\Services\Reservation\UnitAllocator;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -22,8 +20,8 @@ use Illuminate\Support\Facades\DB;
  *
  * Two approvals for the same dates must not both succeed. Inside one transaction the
  * reservation, its rooms and every unit of their room types are locked (in that order, so
- * concurrent approvals cannot deadlock), and only then is availability checked. A second
- * approval waits on the unit locks until the first commits.
+ * concurrent approvals cannot deadlock; see UnitAllocator), and only then is availability
+ * checked. A second approval waits on the unit locks until the first commits.
  *
  * The locks are taken before any plain read on purpose. Under REPEATABLE READ, InnoDB fixes a
  * transaction's snapshot at its first non-locking read; reading anything earlier would let the
@@ -32,7 +30,7 @@ use Illuminate\Support\Facades\DB;
 class ApproveReservation
 {
     public function __construct(
-        private readonly AvailabilityProvider $availability,
+        private readonly UnitAllocator $units,
         private readonly ReservationStateMachine $stateMachine,
     ) {}
 
@@ -59,33 +57,7 @@ class ApproveReservation
                 throw DatesNotAvailableException::inThePast();
             }
 
-            $rooms = ReservationRoom::query()
-                ->whereBelongsTo($locked)
-                ->orderBy('id')
-                ->lockForUpdate()
-                ->get();
-
-            Unit::query()
-                ->whereIn('room_type_id', $rooms->pluck('room_type_id')->unique())
-                ->orderBy('id')
-                ->lockForUpdate()
-                ->get();
-
-            $assigned = [];
-
-            // Rooms of the same type in one reservation each need their own unit.
-            foreach ($rooms as $room) {
-                $unit = $this->availability
-                    ->availableUnits($room->roomType()->firstOrFail(), $locked->check_in, $locked->check_out, $locked)
-                    ->first(fn (Unit $unit) => ! in_array($unit->id, $assigned, true));
-
-                if ($unit === null) {
-                    throw DatesNotAvailableException::taken();
-                }
-
-                $assigned[] = $unit->id;
-                $room->update(['unit_id' => $unit->id]);
-            }
+            $rooms = $this->units->allocate($locked);
 
             $reservation->expires_at = now()->addHours($profile->payment_window_hours);
 
