@@ -28,6 +28,7 @@ use Illuminate\Support\Carbon;
  * @property string $total decimal with two places
  * @property Carbon|null $expires_at
  * @property Carbon|null $confirmed_at
+ * @property Carbon|null $ota_blocked_at
  * @property array<string, mixed>|null $policy_snapshot
  */
 #[Fillable([

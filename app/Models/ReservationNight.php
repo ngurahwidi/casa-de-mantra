@@ -12,6 +12,7 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property Carbon $night_date
+ * @property string $price decimal with two places
  */
 #[Fillable(['reservation_room_id', 'night_date', 'price'])]
 class ReservationNight extends Model

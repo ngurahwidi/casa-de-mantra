@@ -98,7 +98,7 @@ class CreateReservationRequest
                 'tax_total' => $quote->taxTotal,
                 'total' => $quote->total,
                 'payment_status' => ReservationPaymentStatus::Unpaid,
-                'policy_snapshot' => $this->policySnapshot($data->ratePlan),
+                'policy_snapshot' => self::policySnapshot($data->ratePlan),
             ]);
 
             // Taxes are charged per reservation, so the room carries the nightly prices only.
@@ -125,7 +125,7 @@ class CreateReservationRequest
      *
      * @return array{full_name: string, email: string, phone: string, country: string|null}
      */
-    private static function contact(GuestDetails $details): array
+    public static function contact(GuestDetails $details): array
     {
         return [
             'full_name' => trim($details->fullName),
@@ -140,7 +140,7 @@ class CreateReservationRequest
      *
      * @return array<string, mixed>
      */
-    private function policySnapshot(RatePlan $ratePlan): array
+    public static function policySnapshot(RatePlan $ratePlan): array
     {
         $policy = $ratePlan->cancellationPolicy()->firstOrFail();
 
