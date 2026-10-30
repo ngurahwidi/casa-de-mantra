@@ -7,8 +7,8 @@ use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Models\Guest;
 use App\Models\Reservation;
+use App\Services\Reservation\ReservationCodeGenerator;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
 
 /**
  * @extends Factory<Reservation>
@@ -25,7 +25,7 @@ class ReservationFactory extends Factory
     public function definition(): array
     {
         return [
-            'code' => Str::lower(Str::random(8)),
+            'code' => ReservationCodeGenerator::random(),
             'guest_id' => Guest::factory(),
             'status' => ReservationStatus::Pending,
             'source' => ReservationSource::DirectWeb,
@@ -47,6 +47,21 @@ class ReservationFactory extends Factory
             'external_id' => null,
             'policy_snapshot' => null,
         ];
+    }
+
+    /**
+     * Copies the guest's details into the reservation's contact snapshot unless given.
+     */
+    public function configure(): static
+    {
+        return $this->afterMaking(function (Reservation $reservation): void {
+            $guest = $reservation->guest()->firstOrFail();
+
+            $reservation->guest_full_name ??= $guest->full_name;
+            $reservation->guest_email ??= $guest->email;
+            $reservation->guest_phone ??= $guest->phone;
+            $reservation->guest_country ??= $guest->country;
+        });
     }
 
     public function awaitingPayment(): static

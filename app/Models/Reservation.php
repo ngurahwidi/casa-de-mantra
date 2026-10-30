@@ -18,12 +18,22 @@ use Illuminate\Support\Carbon;
 /**
  * Status changes go through ReservationStateMachine (T4.3), never by assigning `status` directly.
  *
+ * guest_full_name, guest_email, guest_phone and guest_country are the contact details given
+ * with this reservation; use them to contact the guest about it, not the guest record.
+ *
  * @property ReservationStatus $status
+ * @property Carbon $check_in
+ * @property Carbon $check_out
  * @property Carbon|null $expires_at
+ * @property array<string, mixed>|null $policy_snapshot
  */
 #[Fillable([
     'code',
     'guest_id',
+    'guest_full_name',
+    'guest_email',
+    'guest_phone',
+    'guest_country',
     'status',
     'source',
     'check_in',

@@ -42,6 +42,9 @@ class ReservationTest extends TestCase
         $reservation = Reservation::create([
             'code' => 'abc12345',
             'guest_id' => $guest->id,
+            'guest_full_name' => 'Jane Doe',
+            'guest_email' => 'jane@example.com',
+            'guest_phone' => '+62 812 3456 7890',
             'check_in' => '2026-12-24',
             'check_out' => '2026-12-27',
             'adults' => 2,
@@ -64,8 +67,22 @@ class ReservationTest extends TestCase
         $this->assertNull($reservation->confirmed_at);
         $this->assertNull($reservation->ota_blocked_at);
         $this->assertNull($reservation->external_source);
+        $this->assertSame('Jane Doe', $reservation->guest_full_name);
+        $this->assertNull($reservation->guest_country);
         $this->assertTrue($reservation->guest->is($guest));
         $this->assertTrue($guest->reservations->first()->is($reservation));
+    }
+
+    public function test_factory_copies_the_guest_details_into_the_contact_snapshot(): void
+    {
+        $guest = Guest::factory()->create(['full_name' => 'Jane Doe', 'email' => 'jane@example.com', 'phone' => '+62 812 0000 0000', 'country' => 'Australia']);
+
+        $reservation = Reservation::factory()->for($guest)->create(['guest_phone' => '+1 555 0100']);
+
+        $this->assertSame('Jane Doe', $reservation->guest_full_name);
+        $this->assertSame('jane@example.com', $reservation->guest_email);
+        $this->assertSame('+1 555 0100', $reservation->guest_phone);
+        $this->assertSame('Australia', $reservation->guest_country);
     }
 
     public function test_reservation_timestamps_are_cast_to_datetimes(): void

@@ -225,6 +225,35 @@ class ReservationStateMachineTest extends TestCase
         );
     }
 
+    public function test_record_created_writes_an_initial_log_and_created_event(): void
+    {
+        $admin = User::factory()->create();
+        $reservation = Reservation::factory()->confirmed()->create();
+
+        $this->stateMachine->recordCreated($reservation, $admin, 'Booked by phone.');
+
+        $this->assertSame(ReservationStatus::Confirmed, $reservation->fresh()->status);
+
+        $log = ReservationStatusLog::query()->sole();
+        $this->assertSame($reservation->id, $log->reservation_id);
+        $this->assertSame($admin->id, $log->admin_user_id);
+        $this->assertNull($log->from_status);
+        $this->assertSame(ReservationStatus::Confirmed, $log->to_status);
+        $this->assertSame('Booked by phone.', $log->note);
+
+        $event = OutboxEvent::query()->sole();
+        $this->assertSame('reservation.created', $event->type);
+        $this->assertSame(OutboxEventStatus::Pending, $event->status);
+        $this->assertEquals([
+            'reservation_id' => $reservation->id,
+            'code' => $reservation->code,
+            'from_status' => null,
+            'to_status' => 'confirmed',
+            'admin_user_id' => $admin->id,
+            'note' => 'Booked by phone.',
+        ], $event->payload);
+    }
+
     public function test_allowed_transitions_lists_the_next_statuses(): void
     {
         foreach (ReservationStatus::cases() as $from) {

@@ -12,6 +12,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property MealPlan $meal_plan
+ */
 #[Fillable([
     'room_type_id',
     'cancellation_policy_id',

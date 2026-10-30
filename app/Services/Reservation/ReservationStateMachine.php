@@ -22,7 +22,8 @@ use Illuminate\Support\Facades\DB;
  * Every transition writes a reservation_status_logs entry and a `reservation.<to_status>`
  * outbox event in the same transaction as the status change. The reservation row is locked
  * and its status re-read from the database, so a stale model or two concurrent transitions
- * cannot both pass validation.
+ * cannot both pass validation. The creation of a reservation is recorded the same way by
+ * recordCreated(), as a `reservation.created` event.
  *
  * This only enforces the order of statuses. Preconditions such as availability or payment
  * are checked by the action that asks for the transition, inside the same transaction.
@@ -105,6 +106,38 @@ class ReservationStateMachine
 
             return $reservation;
         });
+    }
+
+    /**
+     * Records the creation of a reservation with its initial status: a log entry without
+     * from_status and a `reservation.created` outbox event.
+     *
+     * Call it inside the transaction that inserts the reservation.
+     *
+     * @param  User|null  $actor  the admin who entered it; null for guest requests
+     */
+    public function recordCreated(Reservation $reservation, ?User $actor = null, ?string $note = null): void
+    {
+        ReservationStatusLog::create([
+            'reservation_id' => $reservation->getKey(),
+            'admin_user_id' => $actor?->getKey(),
+            'from_status' => null,
+            'to_status' => $reservation->status,
+            'note' => $note,
+        ]);
+
+        OutboxEvent::create([
+            'type' => 'reservation.created',
+            'payload' => [
+                'reservation_id' => $reservation->getKey(),
+                'code' => $reservation->code,
+                'from_status' => null,
+                'to_status' => $reservation->status->value,
+                'admin_user_id' => $actor?->getKey(),
+                'note' => $note,
+            ],
+            'status' => OutboxEventStatus::Pending,
+        ]);
     }
 
     public function canTransition(ReservationStatus $from, ReservationStatus $to): bool
