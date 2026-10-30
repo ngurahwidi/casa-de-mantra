@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\Cache;
     'bank_account_info',
     'payment_window_hours',
     'pending_reminder_hours',
+    'confirm_on_deposit',
 ])]
 class PropertyProfile extends Model
 {
@@ -93,6 +94,7 @@ class PropertyProfile extends Model
             'bank_account_info' => 'array',
             'payment_window_hours' => 'integer',
             'pending_reminder_hours' => 'integer',
+            'confirm_on_deposit' => 'boolean',
         ];
     }
 }

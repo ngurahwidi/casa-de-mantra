@@ -22,9 +22,12 @@ use Illuminate\Support\Carbon;
  * with this reservation; use them to contact the guest about it, not the guest record.
  *
  * @property ReservationStatus $status
+ * @property ReservationPaymentStatus $payment_status
  * @property Carbon $check_in
  * @property Carbon $check_out
+ * @property string $total decimal with two places
  * @property Carbon|null $expires_at
+ * @property Carbon|null $confirmed_at
  * @property array<string, mixed>|null $policy_snapshot
  */
 #[Fillable([

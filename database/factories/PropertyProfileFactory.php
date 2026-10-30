@@ -40,6 +40,7 @@ class PropertyProfileFactory extends Factory
             ],
             'payment_window_hours' => 24,
             'pending_reminder_hours' => 12,
+            'confirm_on_deposit' => false,
         ];
     }
 }
