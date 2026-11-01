@@ -11,6 +11,8 @@ class EditRoomType extends EditRecord
 {
     protected static string $resource = RoomTypeResource::class;
 
+    protected static ?string $navigationLabel = 'Details';
+
     protected function getHeaderActions(): array
     {
         return [

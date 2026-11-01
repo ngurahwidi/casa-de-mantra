@@ -11,20 +11,17 @@ use App\Exceptions\Pricing\PriceNotConfiguredException;
 use App\Exceptions\Pricing\RoomTypeNotBookableException;
 use App\Exceptions\Pricing\StayLengthNotAllowedException;
 use App\Models\RatePlan;
-use App\Models\RateRule;
 use App\Models\RoomType;
 use App\Models\TaxFee;
+use App\Services\Pricing\NightlyRates;
 use Carbon\CarbonInterface;
-use Carbon\CarbonPeriod;
-use Illuminate\Database\Eloquent\Builder;
 use InvalidArgumentException;
 
 /**
  * Prices a stay under a rate plan.
  *
- * Each night of [checkIn, checkOut) takes the highest-priority rate rule whose date range
- * and days of week cover it; on equal priority the rule starting latest wins, then the
- * newest. A night without a rule cannot be sold. The minimum stay is the strictest of
+ * Each night of [checkIn, checkOut) takes its price from the rule NightlyRates selects
+ * (highest priority, then latest start, then newest). A night without a rule cannot be sold. The minimum stay is the strictest of
  * the matched rules' min_stay_override, falling back to the rate plan's min_stay.
  *
  * Only active tax_fees count. Taxes included in the price are not added on top, so
@@ -35,6 +32,8 @@ use InvalidArgumentException;
  */
 class CalculatePrice
 {
+    public function __construct(private readonly NightlyRates $nightlyRates) {}
+
     /**
      * @throws RoomTypeNotBookableException
      * @throws GuestCapacityExceededException
@@ -76,26 +75,11 @@ class CalculatePrice
             throw GuestCapacityExceededException::for($roomType);
         }
 
-        $rules = $ratePlan->rateRules()
-            ->where('start_date', '<', $end)
-            ->where(fn (Builder $query) => $query->whereNull('end_date')->orWhere('end_date', '>=', $start))
-            ->orderByDesc('priority')
-            ->orderByDesc('start_date')
-            ->orderByDesc('id')
-            ->get();
-
         $nights = [];
         $missing = [];
         $minStay = 1;
 
-        foreach (CarbonPeriod::create($start, $end)->excludeEndDate() as $night) {
-            $date = $night->toDateString();
-            $day = 1 << ($night->dayOfWeekIso - 1);
-
-            $rule = $rules->first(fn (RateRule $rule) => $rule->start_date->toDateString() <= $date
-                && ($rule->end_date === null || $rule->end_date->toDateString() >= $date)
-                && ($rule->days_of_week_mask & $day) !== 0);
-
+        foreach ($this->nightlyRates->forPeriod($ratePlan, $start, $end) as $date => $rule) {
             if ($rule === null) {
                 $missing[] = $date;
 

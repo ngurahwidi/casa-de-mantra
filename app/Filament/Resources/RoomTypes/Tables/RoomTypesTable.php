@@ -2,7 +2,11 @@
 
 namespace App\Filament\Resources\RoomTypes\Tables;
 
+use App\Filament\Resources\RoomTypes\RoomTypeResource;
+use App\Models\RoomType;
+use Filament\Actions\Action;
 use Filament\Actions\EditAction;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
@@ -47,6 +51,9 @@ class RoomTypesTable
             ])
             ->recordActions([
                 EditAction::make(),
+                Action::make('pricing')
+                    ->icon(Heroicon::OutlinedBanknotes)
+                    ->url(fn (RoomType $record): string => RoomTypeResource::getUrl('pricing', ['record' => $record])),
             ]);
     }
 }

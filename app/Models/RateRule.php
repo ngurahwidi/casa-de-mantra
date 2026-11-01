@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\RateRuleType;
 use Database\Factories\RateRuleFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -33,12 +34,44 @@ class RateRule extends Model
     /** Monday = 1, Tuesday = 2, Wednesday = 4, Thursday = 8, Friday = 16, Saturday = 32, Sunday = 64. */
     public const ALL_DAYS = 127;
 
+    /** The rule the Pricing page creates for the base price. */
+    public const BASE_PRICE = 'Base Price';
+
     /**
      * @return BelongsTo<RatePlan, $this>
      */
     public function ratePlan(): BelongsTo
     {
         return $this->belongsTo(RatePlan::class);
+    }
+
+    public function type(): ?RateRuleType
+    {
+        return RateRuleType::fromPriority($this->priority);
+    }
+
+    /**
+     * @param  iterable<int|string>  $isoDays  1 = Monday ... 7 = Sunday
+     */
+    public static function maskFor(iterable $isoDays): int
+    {
+        $mask = 0;
+
+        foreach ($isoDays as $day) {
+            $mask |= 1 << ((int) $day - 1);
+        }
+
+        return $mask;
+    }
+
+    /**
+     * The days of week the rule covers, 1 = Monday ... 7 = Sunday.
+     *
+     * @return list<int>
+     */
+    public function isoDays(): array
+    {
+        return array_values(array_filter(range(1, 7), fn (int $day): bool => ($this->days_of_week_mask & (1 << ($day - 1))) !== 0));
     }
 
     /**

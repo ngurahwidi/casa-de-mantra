@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -49,6 +50,16 @@ class RoomType extends Model implements HasMedia
     public function ratePlans(): HasMany
     {
         return $this->hasMany(RatePlan::class);
+    }
+
+    /**
+     * The only rate plan sold in phase 1, created when the base price is first set.
+     *
+     * @return HasOne<RatePlan, $this>
+     */
+    public function nonRefundableRatePlan(): HasOne
+    {
+        return $this->hasOne(RatePlan::class)->where('name', CancellationPolicy::NON_REFUNDABLE);
     }
 
     /**

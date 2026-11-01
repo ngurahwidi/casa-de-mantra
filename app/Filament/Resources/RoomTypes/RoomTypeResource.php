@@ -5,6 +5,7 @@ namespace App\Filament\Resources\RoomTypes;
 use App\Filament\Resources\RoomTypes\Pages\CreateRoomType;
 use App\Filament\Resources\RoomTypes\Pages\EditRoomType;
 use App\Filament\Resources\RoomTypes\Pages\ListRoomTypes;
+use App\Filament\Resources\RoomTypes\Pages\ManageRoomTypePricing;
 use App\Filament\Resources\RoomTypes\RelationManagers\AmenitiesRelationManager;
 use App\Filament\Resources\RoomTypes\RelationManagers\MediaRelationManager;
 use App\Filament\Resources\RoomTypes\RelationManagers\UnitsRelationManager;
@@ -12,6 +13,7 @@ use App\Filament\Resources\RoomTypes\Schemas\RoomTypeForm;
 use App\Filament\Resources\RoomTypes\Tables\RoomTypesTable;
 use App\Models\RoomType;
 use BackedEnum;
+use Filament\Resources\Pages\Page;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -49,12 +51,21 @@ class RoomTypeResource extends Resource
         ];
     }
 
+    public static function getRecordSubNavigation(Page $page): array
+    {
+        return $page->generateNavigationItems([
+            EditRoomType::class,
+            ManageRoomTypePricing::class,
+        ]);
+    }
+
     public static function getPages(): array
     {
         return [
             'index' => ListRoomTypes::route('/'),
             'create' => CreateRoomType::route('/create'),
             'edit' => EditRoomType::route('/{record}/edit'),
+            'pricing' => ManageRoomTypePricing::route('/{record}/pricing'),
         ];
     }
 }
