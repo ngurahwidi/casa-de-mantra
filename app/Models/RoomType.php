@@ -76,6 +76,16 @@ class RoomType extends Model implements HasMedia
     }
 
     /**
+     * Units, rate plans and reservations restrict deletion at the database level.
+     */
+    public function canBeDeleted(): bool
+    {
+        return ! $this->units()->exists()
+            && ! $this->ratePlans()->exists()
+            && ! $this->reservationRooms()->exists();
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

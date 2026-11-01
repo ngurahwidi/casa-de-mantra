@@ -43,6 +43,14 @@ class Unit extends Model
     }
 
     /**
+     * Reservations restrict deletion at the database level; such a unit is set inactive instead.
+     */
+    public function canBeDeleted(): bool
+    {
+        return ! $this->reservationRooms()->exists();
+    }
+
+    /**
      * @param  Builder<Unit>  $query
      */
     public function scopeActive(Builder $query): void
