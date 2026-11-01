@@ -6,6 +6,7 @@ use App\Actions\Pricing\CalculatePrice;
 use App\Actions\Pricing\SavePriceRule;
 use App\Actions\Pricing\SetBasePrice;
 use App\Data\Pricing\NightPrice;
+use App\Data\Pricing\PriceQuote;
 use App\Data\Pricing\PriceRuleData;
 use App\Enums\RateRuleType;
 use App\Models\CancellationPolicy;
@@ -54,7 +55,7 @@ class SavePriceRuleTest extends TestCase
 
         $rule->refresh();
         $this->assertSame($roomType->nonRefundableRatePlan()->sole()->id, $rule->rate_plan_id);
-        $this->assertSame(RateRuleType::Weekend, $rule->type());
+        $this->assertSame(RateRuleType::Weekend, $rule->type);
         $this->assertSame(16 | 32, $rule->days_of_week_mask);
         $this->assertSame('2026-11-01', $rule->start_date->toDateString());
         $this->assertNull($rule->end_date);
@@ -72,7 +73,7 @@ class SavePriceRuleTest extends TestCase
         );
 
         $rule->refresh();
-        $this->assertSame(RateRuleType::Seasonal, $rule->type());
+        $this->assertSame(RateRuleType::Seasonal, $rule->type);
         $this->assertSame(RateRule::ALL_DAYS, $rule->days_of_week_mask);
         $this->assertSame('2027-07-01', $rule->start_date->toDateString());
         $this->assertSame('2027-08-31', $rule->end_date->toDateString());
@@ -89,7 +90,7 @@ class SavePriceRuleTest extends TestCase
         );
 
         $rule->refresh();
-        $this->assertSame(RateRuleType::SpecialDates, $rule->type());
+        $this->assertSame(RateRuleType::SpecialDates, $rule->type);
         $this->assertSame('2026-12-31', $rule->start_date->toDateString());
         $this->assertSame('2026-12-31', $rule->end_date->toDateString());
         $this->assertNull($rule->min_stay_override);
@@ -143,7 +144,7 @@ class SavePriceRuleTest extends TestCase
             app(SavePriceRule::class)->handle($roomType, PriceRuleData::specialDates('Christmas', '4000000', Carbon::parse('2026-12-25')), $weekend);
             $this->fail('Expected the type change to be rejected.');
         } catch (InvalidArgumentException) {
-            $this->assertSame(RateRuleType::Weekend, $weekend->fresh()->type());
+            $this->assertSame(RateRuleType::Weekend, $weekend->fresh()->type);
         }
     }
 
@@ -189,6 +190,69 @@ class SavePriceRuleTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
 
         app(SavePriceRule::class)->handle($roomType, PriceRuleData::weekend('Weekend', '3000000', []));
+    }
+
+    public function test_new_price_wins_over_older_prices_of_the_same_type(): void
+    {
+        $roomType = $this->roomTypeWithBasePrice();
+        $save = app(SavePriceRule::class);
+        // The later price starts earlier, so without its own priority the older one would win.
+        $older = $save->handle($roomType, PriceRuleData::seasonal('High season', '3000000', Carbon::parse('2026-12-20'), Carbon::parse('2027-01-10')));
+        $newer = $save->handle($roomType, PriceRuleData::seasonal('Holidays', '3500000', Carbon::parse('2026-12-15'), Carbon::parse('2027-01-05')));
+
+        $quote = $this->quote($roomType, '2026-12-24', '2026-12-25');
+
+        $this->assertSame([2000, 2001], [$older->fresh()->priority, $newer->fresh()->priority]);
+        $this->assertSame('3500000.00', $quote->total);
+    }
+
+    public function test_new_price_goes_on_top_after_a_price_in_between_is_deleted(): void
+    {
+        $roomType = $this->roomTypeWithBasePrice();
+        $save = app(SavePriceRule::class);
+        $first = $save->handle($roomType, PriceRuleData::weekend('Saturday', '3000000', [self::SATURDAY]));
+        $save->handle($roomType, PriceRuleData::weekend('Friday', '3000000', [self::FRIDAY]))->delete();
+        $top = $save->handle($roomType, PriceRuleData::weekend('Long weekend', '3000000', [self::FRIDAY, self::SATURDAY]));
+
+        $this->assertGreaterThan($first->fresh()->priority, $top->fresh()->priority);
+    }
+
+    public function test_full_top_of_the_band_is_renumbered_before_adding(): void
+    {
+        $roomType = $this->roomTypeWithBasePrice();
+        $ratePlan = $roomType->nonRefundableRatePlan()->sole();
+        $atTop = RateRule::factory()->for($ratePlan)->ofType(RateRuleType::SpecialDates, 999)->create();
+        $below = RateRule::factory()->for($ratePlan)->ofType(RateRuleType::SpecialDates, 500)->create();
+
+        $added = app(SavePriceRule::class)->handle($roomType, PriceRuleData::specialDates('Christmas', '4000000', Carbon::parse('2026-12-25')));
+
+        $this->assertSame(
+            [3000, 3001, 3002],
+            [$below->fresh()->priority, $atTop->fresh()->priority, $added->fresh()->priority],
+        );
+    }
+
+    public function test_editing_keeps_the_position_of_a_price(): void
+    {
+        $roomType = $this->roomTypeWithBasePrice();
+        $save = app(SavePriceRule::class);
+        $older = $save->handle($roomType, PriceRuleData::weekend('Saturday', '3000000', [self::SATURDAY]));
+        $save->handle($roomType, PriceRuleData::weekend('Friday', '3000000', [self::FRIDAY]));
+
+        $save->handle($roomType, PriceRuleData::weekend('Saturday', '3100000', [self::SATURDAY]), $older);
+
+        $this->assertSame(1000, $older->fresh()->priority);
+    }
+
+    private function quote(RoomType $roomType, string $checkIn, string $checkOut): PriceQuote
+    {
+        return app(CalculatePrice::class)->handle(
+            $roomType,
+            $roomType->nonRefundableRatePlan()->sole(),
+            Carbon::parse($checkIn),
+            Carbon::parse($checkOut),
+            adults: 2,
+        );
     }
 
     private function roomTypeWithBasePrice(string $price = '2500000'): RoomType

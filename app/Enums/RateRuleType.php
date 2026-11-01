@@ -3,11 +3,12 @@
 namespace App\Enums;
 
 /**
- * The kinds of price an admin sets on the Pricing page.
+ * The kinds of price an admin sets on the Pricing page, stored in rate_rules.type.
  *
- * The type is not stored: it is encoded in rate_rules.priority, which the admin never enters.
- * A higher priority wins on a night covered by several rules, so special dates beat a season,
- * a season beats the weekend price and every rule beats the base price.
+ * Each type owns a band of rate_rules.priority, and a higher priority wins on a night covered
+ * by several rules. Because the bands do not overlap, special dates always beat a season, a
+ * season beats the weekend price and every rule beats the base price. Within its band the
+ * admin orders the rules of one type by dragging them; the numbers are never shown.
  */
 enum RateRuleType: string
 {
@@ -16,28 +17,22 @@ enum RateRuleType: string
     case Seasonal = 'seasonal';
     case SpecialDates = 'special_dates';
 
-    public function priority(): int
+    /** Rules of one type, per rate plan, that fit in a band. */
+    public const BAND_SIZE = 1000;
+
+    public function lowestPriority(): int
     {
         return match ($this) {
             self::Base => 0,
-            self::Weekend => 10,
-            self::Seasonal => 20,
-            self::SpecialDates => 30,
+            self::Weekend => 1000,
+            self::Seasonal => 2000,
+            self::SpecialDates => 3000,
         };
     }
 
-    /**
-     * The type a rule was created as, or null for a priority the Pricing page does not set.
-     */
-    public static function fromPriority(int $priority): ?self
+    public function highestPriority(): int
     {
-        foreach (self::cases() as $type) {
-            if ($type->priority() === $priority) {
-                return $type;
-            }
-        }
-
-        return null;
+        return $this === self::Base ? 0 : $this->lowestPriority() + self::BAND_SIZE - 1;
     }
 
     public function label(): string

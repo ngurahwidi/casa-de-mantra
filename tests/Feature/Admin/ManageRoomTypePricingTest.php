@@ -101,7 +101,7 @@ class ManageRoomTypePricingTest extends TestCase
             ->callAction('addWeekend', ['name' => 'Weekend', 'days' => [5, 6], 'price_per_night' => '3000000'])
             ->assertHasNoFormErrors();
 
-        $rule = RateRule::query()->where('priority', RateRuleType::Weekend->priority())->sole();
+        $rule = RateRule::query()->where('type', RateRuleType::Weekend)->sole();
         $this->assertSame(16 | 32, $rule->days_of_week_mask);
         $this->assertSame('3000000.00', $rule->price_per_night);
     }
@@ -129,7 +129,7 @@ class ManageRoomTypePricingTest extends TestCase
             ])
             ->assertHasNoFormErrors();
 
-        $rule = RateRule::query()->where('priority', RateRuleType::Seasonal->priority())->sole();
+        $rule = RateRule::query()->where('type', RateRuleType::Seasonal)->sole();
         $this->assertSame('2027-07-01', $rule->start_date->toDateString());
         $this->assertSame('2027-08-31', $rule->end_date->toDateString());
         $this->assertSame(3, $rule->min_stay_override);
@@ -159,7 +159,7 @@ class ManageRoomTypePricingTest extends TestCase
             ->assertSeeHtml('data-date="2026-11-20"')
             ->assertSee('4,750,000');
 
-        $rule = RateRule::query()->where('priority', RateRuleType::SpecialDates->priority())->sole();
+        $rule = RateRule::query()->where('type', RateRuleType::SpecialDates)->sole();
         $this->assertSame('2026-11-20', $rule->end_date->toDateString());
     }
 
@@ -210,7 +210,7 @@ class ManageRoomTypePricingTest extends TestCase
             $roomType,
             PriceRuleData::weekend('Weekend', '3000000', [6]),
         );
-        RateRule::query()->where('priority', RateRuleType::Base->priority())->update(['end_date' => '2026-12-10']);
+        RateRule::query()->where('type', RateRuleType::Base)->update(['end_date' => '2026-12-10']);
 
         $this->page($roomType)
             ->assertSee('November 2026')
@@ -221,6 +221,34 @@ class ManageRoomTypePricingTest extends TestCase
             ->call('previousCalendarMonth')
             ->call('previousCalendarMonth')
             ->assertSee('October 2026');
+    }
+
+    public function test_dragging_prices_keeps_them_within_their_type(): void
+    {
+        $roomType = $this->roomTypeWithBasePrice();
+        $base = RateRule::query()->sole();
+        $saturday = app(SavePriceRule::class)->handle($roomType, PriceRuleData::weekend('Saturday', '3000000', [6]));
+        $friday = app(SavePriceRule::class)->handle($roomType, PriceRuleData::weekend('Friday', '3000000', [5]));
+
+        $this->page($roomType)
+            ->call('toggleTableReordering')
+            ->call('reorderTable', [$base->id, $saturday->id, $friday->id]);
+
+        $this->assertSame(0, $base->fresh()->priority);
+        $this->assertSame([1001, 1000], [$saturday->fresh()->priority, $friday->fresh()->priority]);
+    }
+
+    public function test_change_order_is_offered_only_for_two_prices_of_the_same_type(): void
+    {
+        $roomType = $this->roomTypeWithBasePrice();
+        app(SavePriceRule::class)->handle($roomType, PriceRuleData::weekend('Weekend', '3000000', [6]));
+        app(SavePriceRule::class)->handle($roomType, PriceRuleData::specialDates('Christmas', '4000000', Carbon::parse('2026-12-25')));
+
+        $this->assertFalse($this->page($roomType)->instance()->getTable()->isReorderable());
+
+        app(SavePriceRule::class)->handle($roomType, PriceRuleData::specialDates('New Year', '5000000', Carbon::parse('2026-12-31')));
+
+        $this->assertTrue($this->page($roomType)->instance()->getTable()->isReorderable());
     }
 
     private function page(RoomType $roomType): mixed

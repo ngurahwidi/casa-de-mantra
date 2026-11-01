@@ -15,9 +15,11 @@ use Illuminate\Support\Carbon;
  * @property Carbon $start_date
  * @property Carbon|null $end_date
  * @property string $price_per_night
+ * @property RateRuleType $type
  */
 #[Fillable([
     'rate_plan_id',
+    'type',
     'name',
     'start_date',
     'end_date',
@@ -43,11 +45,6 @@ class RateRule extends Model
     public function ratePlan(): BelongsTo
     {
         return $this->belongsTo(RatePlan::class);
-    }
-
-    public function type(): ?RateRuleType
-    {
-        return RateRuleType::fromPriority($this->priority);
     }
 
     /**
@@ -82,6 +79,7 @@ class RateRule extends Model
     protected function casts(): array
     {
         return [
+            'type' => RateRuleType::class,
             'start_date' => 'date',
             'end_date' => 'date',
             'days_of_week_mask' => 'integer',

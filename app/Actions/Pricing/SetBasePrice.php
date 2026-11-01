@@ -48,14 +48,15 @@ class SetBasePrice
             $ratePlan = $roomType->nonRefundableRatePlan()->first() ?? $this->createRatePlan($roomType);
             $ratePlan->update(['min_stay' => $minStay]);
 
-            $rule = $ratePlan->rateRules()->where('priority', RateRuleType::Base->priority())->first()
+            $rule = $ratePlan->rateRules()->where('type', RateRuleType::Base)->first()
                 ?? $ratePlan->rateRules()->make([
+                    'type' => RateRuleType::Base,
                     'name' => RateRule::BASE_PRICE,
                     'start_date' => now(PropertyProfile::current()->timezone)->toDateString(),
                     'end_date' => null,
                     'days_of_week_mask' => RateRule::ALL_DAYS,
                     'min_stay_override' => null,
-                    'priority' => RateRuleType::Base->priority(),
+                    'priority' => RateRuleType::Base->lowestPriority(),
                 ]);
 
             $rule->price_per_night = $pricePerNight;

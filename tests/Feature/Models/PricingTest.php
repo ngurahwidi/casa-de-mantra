@@ -3,6 +3,7 @@
 namespace Tests\Feature\Models;
 
 use App\Enums\MealPlan;
+use App\Enums\RateRuleType;
 use App\Enums\TaxFeeAppliesTo;
 use App\Enums\TaxFeeType;
 use App\Models\CancellationPolicy;
@@ -109,11 +110,13 @@ class PricingTest extends TestCase
     {
         $rule = RateRule::create([
             'rate_plan_id' => RatePlan::factory()->create()->id,
+            'type' => RateRuleType::Base,
             'name' => 'Base Price',
             'start_date' => '2026-01-01',
             'price_per_night' => 1500000,
         ])->fresh();
 
+        $this->assertSame(RateRuleType::Base, $rule->type);
         $this->assertEquals(Carbon::parse('2026-01-01'), $rule->start_date);
         $this->assertNull($rule->end_date);
         $this->assertSame(RateRule::ALL_DAYS, $rule->days_of_week_mask);

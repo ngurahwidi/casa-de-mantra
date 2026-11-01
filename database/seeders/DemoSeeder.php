@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\MealPlan;
+use App\Enums\RateRuleType;
 use App\Enums\UnitStatus;
 use App\Models\Amenity;
 use App\Models\CancellationPolicy;
@@ -65,14 +66,15 @@ class DemoSeeder extends Seeder
         );
 
         RateRule::firstOrCreate(
-            ['rate_plan_id' => $ratePlan->id, 'name' => 'Base Price'],
+            ['rate_plan_id' => $ratePlan->id, 'name' => RateRule::BASE_PRICE],
             [
+                'type' => RateRuleType::Base,
                 'start_date' => now(PropertyProfile::current()->timezone)->startOfYear()->toDateString(),
                 'end_date' => null,
                 'days_of_week_mask' => RateRule::ALL_DAYS,
                 'price_per_night' => 2500000,
                 'min_stay_override' => null,
-                'priority' => 0,
+                'priority' => RateRuleType::Base->lowestPriority(),
             ],
         );
     }

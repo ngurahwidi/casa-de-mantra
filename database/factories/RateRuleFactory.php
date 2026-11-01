@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\RateRuleType;
 use App\Models\RatePlan;
 use App\Models\RateRule;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -20,6 +21,7 @@ class RateRuleFactory extends Factory
     {
         return [
             'rate_plan_id' => RatePlan::factory(),
+            'type' => RateRuleType::Base,
             'name' => 'Base Price',
             'start_date' => '2026-01-01',
             'end_date' => null,
@@ -28,5 +30,13 @@ class RateRuleFactory extends Factory
             'min_stay_override' => null,
             'priority' => 0,
         ];
+    }
+
+    /**
+     * @param  int  $position  0 is the lowest priority within the type's band
+     */
+    public function ofType(RateRuleType $type, int $position = 0): static
+    {
+        return $this->state(['type' => $type, 'priority' => $type->lowestPriority() + $position]);
     }
 }

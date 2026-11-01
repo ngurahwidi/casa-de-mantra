@@ -5,6 +5,7 @@ namespace Tests\Feature\Actions;
 use App\Actions\Pricing\CalculatePrice;
 use App\Actions\Pricing\SetBasePrice;
 use App\Enums\MealPlan;
+use App\Enums\RateRuleType;
 use App\Models\CancellationPolicy;
 use App\Models\PropertyProfile;
 use App\Models\RatePlan;
@@ -55,6 +56,7 @@ class SetBasePriceTest extends TestCase
         $rule->refresh();
         $this->assertSame($ratePlan->id, $rule->rate_plan_id);
         $this->assertSame(RateRule::BASE_PRICE, $rule->name);
+        $this->assertSame(RateRuleType::Base, $rule->type);
         $this->assertSame('2026-11-02', $rule->start_date->toDateString());
         $this->assertNull($rule->end_date);
         $this->assertSame(RateRule::ALL_DAYS, $rule->days_of_week_mask);

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\RoomTypes\Pages;
 
+use App\Actions\Pricing\ReorderPriceRules;
 use App\Actions\Pricing\SavePriceRule;
 use App\Actions\Pricing\SetBasePrice;
 use App\Data\Pricing\PriceRuleData;
@@ -95,7 +96,7 @@ class ManageRoomTypePricing extends Page implements HasTable
                     ->warning()
                     ->visible(fn (): bool => $this->basePrice() === null),
                 Section::make('Prices')
-                    ->description('When a night is covered by several prices, special dates win over a seasonal price, a seasonal price over the weekend price, and all of them over the base price.')
+                    ->description('When a night is covered by several prices, special dates win over a seasonal price, a seasonal price over the weekend price, and all of them over the base price. Among prices of the same kind, the one higher in the list wins; use "Change order" to move them.')
                     ->schema([
                         EmbeddedTable::make(),
                     ]),
@@ -117,13 +118,18 @@ class ManageRoomTypePricing extends Page implements HasTable
                 ->orderBy('start_date'))
             ->modelLabel('price')
             ->paginated(false)
+            // The order is applied per type by ReorderPriceRules (see reorderTable()).
+            ->reorderable('priority', condition: fn (): bool => $this->hasPricesToOrder(), direction: 'desc')
+            ->reorderRecordsTriggerAction(fn (Action $action, bool $isReordering): Action => $action
+                ->button()
+                ->label($isReordering ? 'Done' : 'Change order'))
             ->emptyStateHeading('No prices yet')
             ->emptyStateDescription('Set a base price to start selling this room type.')
             ->columns([
                 TextColumn::make('type')
-                    ->state(fn (RateRule $record): string => $record->type()?->label() ?? 'Other')
                     ->badge()
-                    ->color(fn (RateRule $record): string => self::color($record->type())),
+                    ->formatStateUsing(fn (RateRuleType $state): string => $state->label())
+                    ->color(fn (RateRuleType $state): string => self::color($state)),
                 TextColumn::make('name'),
                 TextColumn::make('applies')
                     ->label('Applies to')
@@ -133,7 +139,7 @@ class ManageRoomTypePricing extends Page implements HasTable
                     ->money(fn (): string => PropertyProfile::current()->currency),
                 TextColumn::make('min_stay')
                     ->label('Min. stay')
-                    ->state(fn (RateRule $record): ?int => $record->type() === RateRuleType::Base
+                    ->state(fn (RateRule $record): ?int => $record->type === RateRuleType::Base
                         ? $record->ratePlan->min_stay
                         : $record->min_stay_override)
                     ->formatStateUsing(fn (int $state): string => trans_choice(':count night|:count nights', $state))
@@ -142,17 +148,33 @@ class ManageRoomTypePricing extends Page implements HasTable
             ->recordActions([
                 Action::make('edit')
                     ->icon(Heroicon::PencilSquare)
-                    ->visible(fn (RateRule $record): bool => $record->type() !== null)
-                    ->modalHeading(fn (RateRule $record): string => 'Edit '.mb_strtolower($record->type()?->label() ?? 'price'))
-                    ->schema(fn (RateRule $record): array => self::priceSchema($record->type() ?? RateRuleType::Base))
+                    ->modalHeading(fn (RateRule $record): string => 'Edit '.mb_strtolower($record->type->label()))
+                    ->schema(fn (RateRule $record): array => self::priceSchema($record->type))
                     ->fillForm(fn (RateRule $record): array => self::formData($record))
                     ->action(function (RateRule $record, array $data): void {
-                        $this->savePrice($record->type() ?? RateRuleType::Base, $data, $record);
+                        $this->savePrice($record->type, $data, $record);
                     }),
                 // The base price is what every other night falls back to, so it is changed, never removed.
                 DeleteAction::make()
-                    ->hidden(fn (RateRule $record): bool => $record->type() === RateRuleType::Base),
+                    ->hidden(fn (RateRule $record): bool => $record->type === RateRuleType::Base),
             ]);
+    }
+
+    /**
+     * Drag-and-drop and the move buttons hand over the whole list, top first. Instead of
+     * numbering the rows 1..n, ReorderPriceRules keeps each price inside its type's band.
+     *
+     * @param  array<int|string>  $order
+     */
+    public function reorderTable(array $order, int|string|null $draggedRecordKey = null): void
+    {
+        if (! $this->getTable()->isReorderable()) {
+            return;
+        }
+
+        app(ReorderPriceRules::class)->handle($this->roomType(), array_map(strval(...), array_values($order)));
+
+        $this->flushCachedTableRecords();
     }
 
     protected function getHeaderActions(): array
@@ -220,7 +242,7 @@ class ManageRoomTypePricing extends Page implements HasTable
             'first_night' => $rule->start_date->toDateString(),
             'last_night' => $rule->end_date?->toDateString(),
             'price_per_night' => $rule->price_per_night,
-            'min_stay' => $rule->type() === RateRuleType::Base ? $rule->ratePlan->min_stay : $rule->min_stay_override,
+            'min_stay' => $rule->type === RateRuleType::Base ? $rule->ratePlan->min_stay : $rule->min_stay_override,
         ];
     }
 
@@ -325,9 +347,9 @@ class ManageRoomTypePricing extends Page implements HasTable
                 'date' => $date,
                 'day' => (int) substr($date, 8, 2),
                 'price' => $rule === null ? null : Number::format((float) $rule->price_per_night, maxPrecision: 2),
-                'type' => $rule?->type(),
+                'type' => $rule?->type,
                 'name' => $rule?->name,
-                'color' => $rule === null ? 'danger' : self::color($rule->type()),
+                'color' => $rule === null ? 'danger' : self::color($rule->type),
                 'isPast' => $isPast,
             ];
         }
@@ -346,9 +368,23 @@ class ManageRoomTypePricing extends Page implements HasTable
     {
         return RateRule::query()
             ->whereIn('rate_plan_id', $this->roomType()->nonRefundableRatePlan()->select('id')->getQuery())
-            ->where('priority', RateRuleType::Base->priority())
+            ->where('type', RateRuleType::Base)
             ->with('ratePlan')
             ->first();
+    }
+
+    /**
+     * Ordering only matters once two prices of the same type could cover the same night.
+     */
+    private function hasPricesToOrder(): bool
+    {
+        return RateRule::query()
+            ->select('type')
+            ->whereIn('rate_plan_id', $this->roomType()->nonRefundableRatePlan()->select('id')->getQuery())
+            ->where('type', '!=', RateRuleType::Base)
+            ->groupBy('type')
+            ->havingRaw('COUNT(*) > 1')
+            ->exists();
     }
 
     private function roomType(): RoomType
@@ -365,7 +401,7 @@ class ManageRoomTypePricing extends Page implements HasTable
                 ? $rule->start_date->format('j M Y')
                 : $rule->start_date->format('j M Y').' – '.$rule->end_date->format('j M Y'));
 
-        return match ($rule->type()) {
+        return match ($rule->type) {
             RateRuleType::Base => 'Every night '.$dates,
             RateRuleType::Weekend => implode(', ', array_map(fn (int $day): string => substr(self::DAYS[$day], 0, 3), $rule->isoDays())).' nights',
             default => $rule->days_of_week_mask === RateRule::ALL_DAYS
@@ -374,10 +410,10 @@ class ManageRoomTypePricing extends Page implements HasTable
         };
     }
 
-    private static function color(?RateRuleType $type): string
+    private static function color(RateRuleType $type): string
     {
         return match ($type) {
-            RateRuleType::Base, null => 'gray',
+            RateRuleType::Base => 'gray',
             RateRuleType::Weekend => 'info',
             RateRuleType::Seasonal => 'warning',
             RateRuleType::SpecialDates => 'success',
