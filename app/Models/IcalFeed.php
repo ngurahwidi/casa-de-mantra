@@ -13,6 +13,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property IcalChannel $channel
+ * @property IcalDirection $direction
+ */
 #[Fillable([
     'room_type_id',
     'channel',

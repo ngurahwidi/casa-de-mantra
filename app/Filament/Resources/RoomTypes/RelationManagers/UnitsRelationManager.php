@@ -3,7 +3,9 @@
 namespace App\Filament\Resources\RoomTypes\RelationManagers;
 
 use App\Enums\UnitStatus;
+use App\Filament\Pages\AvailabilityCalendar;
 use App\Models\Unit;
+use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -11,6 +13,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -62,6 +65,9 @@ class UnitsRelationManager extends RelationManager
                 CreateAction::make(),
             ])
             ->recordActions([
+                Action::make('calendar')
+                    ->icon(Heroicon::OutlinedCalendarDays)
+                    ->url(fn (Unit $record): string => AvailabilityCalendar::getUrl(['unit' => $record->getKey()])),
                 EditAction::make(),
                 // A unit with reservations is set inactive instead.
                 DeleteAction::make()

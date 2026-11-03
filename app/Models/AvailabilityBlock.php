@@ -9,7 +9,13 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property Carbon $start_date first night
+ * @property Carbon $end_date exclusive, the day after the last night
+ * @property AvailabilityBlockSource $source
+ */
 #[Fillable([
     'unit_id',
     'ical_feed_id',
