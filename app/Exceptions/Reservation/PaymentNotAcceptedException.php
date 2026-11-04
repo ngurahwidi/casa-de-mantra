@@ -19,6 +19,11 @@ class PaymentNotAcceptedException extends ReservationException
         return new self("Payments can only be recorded for reservations awaiting payment or confirmed; this one is {$status->value}.");
     }
 
+    public static function receivedInTheFuture(): self
+    {
+        return new self('The payment cannot be received in the future.');
+    }
+
     public static function invalidAmount(string $amount): self
     {
         return new self("The payment amount must be a positive number with at most two decimals; got \"{$amount}\".");

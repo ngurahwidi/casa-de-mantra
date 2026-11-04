@@ -21,6 +21,7 @@ use App\Models\ReservationStatusLog;
 use App\Models\RoomType;
 use App\Models\Unit;
 use App\Models\User;
+use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -270,6 +271,25 @@ class RecordPaymentTest extends TestCase
         );
     }
 
+    public function test_payment_received_in_the_future_is_rejected(): void
+    {
+        $this->assertNotRecorded(
+            $this->awaitingPayment(),
+            'The payment cannot be received in the future.',
+            ReservationStatus::AwaitingPayment,
+            paidAt: Carbon::parse('2026-11-01 08:01:00'),
+        );
+    }
+
+    public function test_payment_received_right_now_is_accepted(): void
+    {
+        $reservation = $this->awaitingPayment();
+
+        $result = $this->record->handle($reservation, $this->admin, $this->payment('4500000', Carbon::parse('2026-11-01 08:00:00')));
+
+        $this->assertSame('2026-11-01 08:00:00', $result->payment->paid_at?->toDateTimeString());
+    }
+
     public function test_status_is_read_from_the_database_not_from_a_stale_model(): void
     {
         $reservation = $this->awaitingPayment();
@@ -334,9 +354,9 @@ class RecordPaymentTest extends TestCase
         return $reservation;
     }
 
-    private function payment(string $amount): PaymentDetails
+    private function payment(string $amount, ?CarbonInterface $paidAt = null): PaymentDetails
     {
-        return new PaymentDetails($amount, PaymentMethod::BankTransfer);
+        return new PaymentDetails($amount, PaymentMethod::BankTransfer, $paidAt);
     }
 
     /**
@@ -347,9 +367,10 @@ class RecordPaymentTest extends TestCase
         ?string $message,
         ReservationStatus $status,
         string $amount = '4500000',
+        ?CarbonInterface $paidAt = null,
     ): void {
         try {
-            $this->record->handle($reservation, $this->admin, $this->payment($amount));
+            $this->record->handle($reservation, $this->admin, $this->payment($amount, $paidAt));
         } catch (Throwable $e) {
             $this->assertInstanceOf(PaymentNotAcceptedException::class, $e);
 

@@ -25,6 +25,8 @@ use Illuminate\Support\Facades\DB;
  * first. The deadline itself is not checked here: until ExpireStaleReservations moves it to
  * expired, an awaiting_payment reservation still holds its dates.
  *
+ * paid_at is when the money was received, so it cannot be later than now.
+ *
  * The reservation's payment_status is worked out from all its paid payments: paid once they
  * reach the total (overpayment included), deposit below it. The reservation row is locked
  * while doing so, so two payments recorded at once are both counted.
@@ -38,11 +40,16 @@ class RecordPayment
     public function __construct(private readonly ConfirmReservation $confirm) {}
 
     /**
-     * @throws PaymentNotAcceptedException when the reservation does not take payments or the amount is invalid
+     * @throws PaymentNotAcceptedException when the reservation does not take payments, the amount is invalid
+     *                                     or the payment is dated in the future
      */
     public function handle(Reservation $reservation, User $admin, PaymentDetails $details): RecordedPayment
     {
         $amount = self::normalizeAmount($details->amount);
+
+        if ($details->paidAt?->greaterThan(now())) {
+            throw PaymentNotAcceptedException::receivedInTheFuture();
+        }
 
         $payment = DB::transaction(function () use ($reservation, $admin, $details, $amount): Payment {
             $locked = Reservation::query()->whereKey($reservation->getKey())->lockForUpdate()->firstOrFail();

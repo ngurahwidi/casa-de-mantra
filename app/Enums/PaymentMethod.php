@@ -8,4 +8,14 @@ enum PaymentMethod: string
     case Cash = 'cash';
     case Card = 'card';
     case Other = 'other';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::BankTransfer => 'Bank transfer',
+            self::Cash => 'Cash',
+            self::Card => 'Card',
+            self::Other => 'Other',
+        };
+    }
 }

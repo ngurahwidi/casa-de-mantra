@@ -21,4 +21,17 @@ enum ReservationStatus: string
     {
         return [self::AwaitingPayment, self::Confirmed];
     }
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Pending => 'Pending',
+            self::AwaitingPayment => 'Awaiting payment',
+            self::Confirmed => 'Confirmed',
+            self::Completed => 'Completed',
+            self::Rejected => 'Rejected',
+            self::Cancelled => 'Cancelled',
+            self::Expired => 'Expired',
+        };
+    }
 }

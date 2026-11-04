@@ -32,6 +32,11 @@ class Payment extends Model
     /** @use HasFactory<PaymentFactory> */
     use HasFactory, HasUuids;
 
+    /** Transfer proofs are kept on the private disk and opened through signed, expiring URLs. */
+    public const PROOF_DISK = 'local';
+
+    public const PROOF_DIRECTORY = 'payment-proofs';
+
     /**
      * @return BelongsTo<Reservation, $this>
      */

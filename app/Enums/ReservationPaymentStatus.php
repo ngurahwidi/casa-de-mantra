@@ -12,4 +12,14 @@ enum ReservationPaymentStatus: string
     case Deposit = 'deposit';
     case Paid = 'paid';
     case Refunded = 'refunded';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Unpaid => 'Unpaid',
+            self::Deposit => 'Deposit paid',
+            self::Paid => 'Paid',
+            self::Refunded => 'Refunded',
+        };
+    }
 }
