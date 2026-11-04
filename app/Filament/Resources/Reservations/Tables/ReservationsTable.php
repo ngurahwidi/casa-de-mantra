@@ -14,6 +14,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -80,6 +81,9 @@ class ReservationsTable
                 SelectFilter::make('source')
                     ->multiple()
                     ->options(self::labels(ReservationSource::cases())),
+                TernaryFilter::make('ota_blocked_at')
+                    ->label('Blocked on OTA')
+                    ->nullable(),
                 Filter::make('stay')
                     ->schema([
                         DatePicker::make('from')

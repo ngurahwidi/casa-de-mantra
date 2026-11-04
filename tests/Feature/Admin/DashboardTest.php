@@ -1,0 +1,117 @@
+<?php
+
+namespace Tests\Feature\Admin;
+
+use App\Filament\Resources\Reservations\Pages\ListReservations;
+use App\Filament\Widgets\PaymentsDueWidget;
+use App\Filament\Widgets\ReservationStatsOverview;
+use App\Filament\Widgets\TodaysStaysWidget;
+use App\Models\IcalFeed;
+use App\Models\PropertyProfile;
+use App\Models\Reservation;
+use App\Models\RoomType;
+use App\Models\User;
+use Filament\Facades\Filament;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
+use Livewire\Livewire;
+use Tests\TestCase;
+
+class DashboardTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // 1 Dec 2026, 08:00 in Asia/Makassar.
+        Carbon::setTestNow('2026-12-01 00:00:00');
+
+        PropertyProfile::factory()->create(['timezone' => 'Asia/Makassar', 'currency' => 'IDR']);
+
+        $this->actingAs(User::factory()->create());
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
+    }
+
+    public function test_dashboard_shows_the_reservation_widgets(): void
+    {
+        $widgets = Filament::getPanel('admin')->getWidgets();
+
+        $this->assertContains(ReservationStatsOverview::class, $widgets);
+        $this->assertContains(TodaysStaysWidget::class, $widgets);
+        $this->assertContains(PaymentsDueWidget::class, $widgets);
+    }
+
+    public function test_stats_show_the_age_of_the_oldest_pending_request(): void
+    {
+        Reservation::factory()->create(['created_at' => '2026-11-30 21:00:00']);
+        Reservation::factory()->create(['created_at' => '2026-11-30 23:00:00']);
+
+        Livewire::test(ReservationStatsOverview::class)
+            ->assertSee('Pending requests')
+            ->assertSee('Oldest requested 3 hours ago');
+    }
+
+    public function test_stats_name_the_failing_ical_feeds(): void
+    {
+        IcalFeed::factory()->for(RoomType::factory()->state(['name' => 'Garden Villa']))->create(['last_status' => 'HTTP 404']);
+
+        Livewire::test(ReservationStatsOverview::class)
+            ->assertSee('1 feed failing')
+            ->assertSee('Garden Villa (Booking)');
+    }
+
+    public function test_stats_show_occupancy_of_the_current_month(): void
+    {
+        Livewire::test(ReservationStatsOverview::class)
+            ->assertSee('Occupancy this month')
+            ->assertSee('0 of 0 nights sold in December');
+    }
+
+    public function test_not_blocked_on_ota_link_lists_the_confirmed_stays_still_to_block(): void
+    {
+        $toBlock = Reservation::factory()->confirmed()->create(['check_in' => '2026-12-10', 'check_out' => '2026-12-12']);
+        $blocked = Reservation::factory()->confirmed()->create(['check_in' => '2026-12-10', 'check_out' => '2026-12-12', 'ota_blocked_at' => now()]);
+        $ended = Reservation::factory()->confirmed()->create(['check_in' => '2026-11-28', 'check_out' => '2026-12-01']);
+        $pending = Reservation::factory()->create(['check_in' => '2026-12-10', 'check_out' => '2026-12-12']);
+
+        Livewire::withQueryParams(['filters' => [
+            'status' => ['values' => ['confirmed']],
+            'ota_blocked_at' => ['value' => '0'],
+            'stay' => ['from' => '2026-12-01'],
+        ]])
+            ->test(ListReservations::class)
+            ->assertCanSeeTableRecords([$toBlock])
+            ->assertCanNotSeeTableRecords([$blocked, $ended, $pending]);
+    }
+
+    public function test_todays_stays_widget_lists_check_ins_and_check_outs_of_today(): void
+    {
+        $checkIn = Reservation::factory()->confirmed()->create(['check_in' => '2026-12-01', 'check_out' => '2026-12-04']);
+        $checkOut = Reservation::factory()->confirmed()->create(['check_in' => '2026-11-28', 'check_out' => '2026-12-01']);
+        $inHouse = Reservation::factory()->confirmed()->create(['check_in' => '2026-11-30', 'check_out' => '2026-12-02']);
+
+        Livewire::test(TodaysStaysWidget::class)
+            ->assertCanSeeTableRecords([$checkOut, $checkIn], inOrder: true)
+            ->assertCanNotSeeTableRecords([$inHouse])
+            ->assertTableColumnStateSet('movement', 'Check-in', $checkIn)
+            ->assertTableColumnStateSet('movement', 'Check-out', $checkOut);
+    }
+
+    public function test_payments_due_widget_lists_unpaid_reservations_about_to_expire(): void
+    {
+        $due = Reservation::factory()->awaitingPayment()->create(['expires_at' => '2026-12-01 06:00:00']);
+        $later = Reservation::factory()->awaitingPayment()->create(['expires_at' => '2026-12-02 00:00:00']);
+
+        Livewire::test(PaymentsDueWidget::class)
+            ->assertCanSeeTableRecords([$due])
+            ->assertCanNotSeeTableRecords([$later]);
+    }
+}

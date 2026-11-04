@@ -14,8 +14,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
+ * last_status is null until the first sync, STATUS_OK after a sync that worked, and otherwise
+ * the reason the latest sync failed.
+ *
  * @property IcalChannel $channel
  * @property IcalDirection $direction
+ * @property string|null $last_status
  */
 #[Fillable([
     'room_type_id',
@@ -30,6 +34,8 @@ class IcalFeed extends Model
 {
     /** @use HasFactory<IcalFeedFactory> */
     use HasFactory, HasUuids;
+
+    public const STATUS_OK = 'ok';
 
     /**
      * @return BelongsTo<RoomType, $this>
@@ -61,6 +67,18 @@ class IcalFeed extends Model
     public function scopeExports(Builder $query): void
     {
         $query->where('direction', IcalDirection::Export);
+    }
+
+    /**
+     * Import feeds whose latest sync failed. Feeds that have never synced are not failing yet.
+     *
+     * @param  Builder<IcalFeed>  $query
+     */
+    public function scopeFailing(Builder $query): void
+    {
+        $query->where('direction', IcalDirection::Import)
+            ->whereNotNull('last_status')
+            ->where('last_status', '!=', self::STATUS_OK);
     }
 
     /**
