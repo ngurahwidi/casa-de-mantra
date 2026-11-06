@@ -6,6 +6,7 @@ use App\Policies\SystemSettingPolicy;
 use Database\Factories\RoomTypeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -87,6 +88,14 @@ class RoomType extends Model implements HasMedia
     public function amenities(): BelongsToMany
     {
         return $this->belongsToMany(Amenity::class, 'room_type_amenity');
+    }
+
+    /**
+     * @param  Builder<RoomType>  $query
+     */
+    public function scopePublished(Builder $query): void
+    {
+        $query->where('is_published', true);
     }
 
     /**

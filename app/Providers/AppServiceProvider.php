@@ -6,6 +6,8 @@ use App\Contracts\AvailabilityProvider;
 use App\Contracts\ReservationProvider;
 use App\Services\Availability\InternalAvailabilityProvider;
 use App\Services\Reservation\InternalReservationProvider;
+use App\View\Composers\SiteLayoutComposer;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -33,6 +35,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        View::composer(
+            ['layouts.public', 'site.*', 'components.site.*'],
+            SiteLayoutComposer::class,
+        );
     }
 }

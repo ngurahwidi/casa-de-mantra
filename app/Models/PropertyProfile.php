@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 
 /**
+ * @property PropertyType $type
  * @property array<string, mixed>|null $seo_settings
  * @property array<string, mixed>|null $theme
  * @property array<string, mixed>|null $bank_account_info

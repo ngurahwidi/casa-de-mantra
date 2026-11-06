@@ -6,4 +6,100 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-serif: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, ui-serif, serif;
+}
+
+@layer base {
+    html {
+        -webkit-tap-highlight-color: transparent;
+        text-rendering: optimizeLegibility;
+    }
+
+    ::selection {
+        background-color: var(--color-accent);
+        color: var(--color-ink);
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 3px;
+    }
+}
+
+@layer components {
+    .site-container {
+        @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+    }
+
+    .eyebrow {
+        @apply text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--color-muted)];
+    }
+
+    .btn-primary {
+        @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.16em] transition duration-200;
+        background-color: var(--color-primary);
+        color: var(--color-paper);
+    }
+
+    .btn-primary:hover {
+        opacity: 0.88;
+    }
+
+    .btn-outline {
+        @apply inline-flex items-center justify-center gap-2 rounded-full border px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.16em] transition duration-200;
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+    }
+
+    .btn-outline:hover {
+        background-color: var(--color-primary);
+        color: var(--color-paper);
+    }
+
+    .btn-light {
+        @apply inline-flex items-center justify-center gap-2 rounded-full border border-white/40 px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition duration-200 hover:bg-white hover:text-[var(--color-primary)];
+    }
+
+    .prose-site {
+        @apply text-sm leading-7 text-[var(--color-muted)];
+    }
+
+    .prose-site > * + * {
+        margin-top: 1.1rem;
+    }
+
+    .prose-site h2 {
+        @apply mt-10 font-serif text-2xl leading-tight text-[var(--color-ink)];
+    }
+
+    .prose-site h3 {
+        @apply mt-8 font-serif text-xl leading-tight text-[var(--color-ink)];
+    }
+
+    .prose-site p {
+        @apply text-sm leading-7;
+    }
+
+    .prose-site a {
+        color: var(--color-primary);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+
+    .prose-site ul {
+        @apply list-disc space-y-2 pl-5;
+    }
+
+    .prose-site ol {
+        @apply list-decimal space-y-2 pl-5;
+    }
+
+    .prose-site strong {
+        color: var(--color-ink);
+    }
+
+    .prose-site blockquote {
+        @apply border-l-2 pl-5 font-serif text-lg italic text-[var(--color-ink)];
+        border-color: var(--color-accent);
+    }
 }
