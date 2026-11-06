@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Actions\Pricing\SetBasePrice;
 use App\Enums\UnitStatus;
 use App\Filament\Resources\RoomTypes\Pages\CreateRoomType;
 use App\Filament\Resources\RoomTypes\Pages\EditRoomType;
@@ -10,6 +11,8 @@ use App\Filament\Resources\RoomTypes\RelationManagers\AmenitiesRelationManager;
 use App\Filament\Resources\RoomTypes\RelationManagers\MediaRelationManager;
 use App\Filament\Resources\RoomTypes\RelationManagers\UnitsRelationManager;
 use App\Models\Amenity;
+use App\Models\CancellationPolicy;
+use App\Models\PropertyProfile;
 use App\Models\RatePlan;
 use App\Models\ReservationRoom;
 use App\Models\RoomType;
@@ -233,6 +236,62 @@ class RoomTypeResourceTest extends TestCase
             ->assertHasFormErrors(['photos']);
 
         $this->assertSame(0, Media::count());
+    }
+
+    public function test_publishing_is_blocked_until_the_room_type_is_complete(): void
+    {
+        PropertyProfile::factory()->create(['timezone' => 'Asia/Makassar', 'currency' => 'IDR']);
+
+        $roomType = RoomType::factory()->create(); // no photo, unit or price yet
+
+        Livewire::test(EditRoomType::class, ['record' => $roomType->getRouteKey()])
+            ->fillForm(['is_published' => true])
+            ->call('save')
+            ->assertHasFormErrors(['is_published']);
+
+        $this->assertFalse($roomType->fresh()->is_published);
+    }
+
+    public function test_publishing_is_allowed_once_the_room_type_is_complete(): void
+    {
+        Storage::fake('public');
+        PropertyProfile::factory()->create(['timezone' => 'Asia/Makassar', 'currency' => 'IDR']);
+        CancellationPolicy::factory()->create(['name' => CancellationPolicy::NON_REFUNDABLE]);
+
+        $roomType = RoomType::factory()->create();
+        Unit::factory()->for($roomType)->create(['status' => UnitStatus::Active]);
+        $roomType->addMedia(UploadedFile::fake()->image('pool.jpg'))->toMediaCollection(RoomType::GALLERY);
+        app(SetBasePrice::class)->handle($roomType, '2500000');
+
+        Livewire::test(EditRoomType::class, ['record' => $roomType->getRouteKey()])
+            ->fillForm(['is_published' => true])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertTrue($roomType->fresh()->is_published);
+    }
+
+    public function test_an_incomplete_room_type_can_still_be_unpublished(): void
+    {
+        // E.g. a published room type that lost its last photo afterwards.
+        $roomType = RoomType::factory()->published()->create();
+
+        Livewire::test(EditRoomType::class, ['record' => $roomType->getRouteKey()])
+            ->fillForm(['is_published' => false])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertFalse($roomType->fresh()->is_published);
+    }
+
+    public function test_the_create_form_cannot_publish_a_new_room_type(): void
+    {
+        Livewire::test(CreateRoomType::class)
+            ->fillForm(['name' => 'Garden Villa', 'max_adults' => 2, 'is_published' => true])
+            ->call('create')
+            ->assertHasFormErrors(['is_published']);
+
+        $this->assertSame(0, RoomType::count());
     }
 
     private function unitsManager(RoomType $roomType): mixed

@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources\RoomTypes\Schemas;
 
+use App\Models\RoomType;
+use App\Services\Readiness\ReadinessCheck;
+use Closure;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -42,7 +45,22 @@ class RoomTypeForm
                             ->columnSpanFull(),
                         Toggle::make('is_published')
                             ->label('Published')
-                            ->helperText('Show this room type on the public website.')
+                            ->helperText('Show this room type on the public website. It can be published only once it is complete; see the "Ready to sell?" page.')
+                            // Publishing is guarded by ReadinessCheck; unpublishing is always allowed.
+                            // The record is null while the room type is being created, so nothing can pass yet.
+                            ->rule(static fn (mixed $record): Closure => static function (string $attribute, mixed $value, Closure $fail) use ($record): void {
+                                if ($value !== true) {
+                                    return;
+                                }
+
+                                $failures = $record instanceof RoomType
+                                    ? app(ReadinessCheck::class)->roomType($record)->failures()
+                                    : ['add a photo, an active unit and a base price first'];
+
+                                if ($failures !== []) {
+                                    $fail('It cannot be published yet: '.implode(', ', $failures).'.');
+                                }
+                            })
                             ->columnSpanFull(),
                     ]),
 

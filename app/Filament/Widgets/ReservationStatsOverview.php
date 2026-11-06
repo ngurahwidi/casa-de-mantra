@@ -3,10 +3,12 @@
 namespace App\Filament\Widgets;
 
 use App\Enums\ReservationStatus;
+use App\Filament\Pages\ReadyToSell;
 use App\Filament\Resources\Reservations\ReservationResource;
 use App\Models\IcalFeed;
 use App\Models\PropertyProfile;
 use App\Services\Dashboard\DashboardOverview;
+use App\Services\Readiness\ReadinessCheck;
 use Carbon\CarbonImmutable;
 use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\StatsOverviewWidget;
@@ -37,6 +39,7 @@ class ReservationStatsOverview extends StatsOverviewWidget
             $this->notBlockedOnOta($overview),
             $this->icalSync($overview),
             $this->occupancy($overview),
+            $this->readiness(),
         ];
     }
 
@@ -106,5 +109,25 @@ class ReservationStatsOverview extends StatsOverviewWidget
         return Stat::make('Occupancy this month', $percentage === null ? '–' : $percentage.'%')
             ->icon(Heroicon::OutlinedChartPie)
             ->description($occupancy->soldNights.' of '.$occupancy->availableNights.' nights sold in '.CarbonImmutable::parse($occupancy->month)->format('F'));
+    }
+
+    private function readiness(): Stat
+    {
+        // One report for every readiness question, so the checks run once per dashboard render.
+        $report = app(ReadinessCheck::class)->report();
+
+        return Stat::make('Ready to sell?', $report->ready ? 'Yes' : 'No')
+            ->icon($report->ready ? Heroicon::OutlinedShieldCheck : Heroicon::OutlinedShieldExclamation)
+            ->description(match (true) {
+                $report->issues === [] => 'Every check passed',
+                default => trans_choice('{1} One issue to fix|{2,*} :count issues to fix', count($report->issues)),
+            })
+            ->color(match (true) {
+                $report->issues === [] => 'success',
+                // A published room type that cannot be booked is the worst case: the site offers it.
+                $report->incompletePublishedRoomTypes > 0 => 'danger',
+                default => 'warning',
+            })
+            ->url(ReadyToSell::getUrl());
     }
 }
