@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
+use App\Policies\SystemSettingPolicy;
 use Database\Factories\AmenityFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 #[Fillable(['name', 'icon', 'category'])]
+#[UsePolicy(SystemSettingPolicy::class)]
 class Amenity extends Model
 {
     /** @use HasFactory<AmenityFactory> */

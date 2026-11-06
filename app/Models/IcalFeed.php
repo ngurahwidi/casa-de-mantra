@@ -4,14 +4,17 @@ namespace App\Models;
 
 use App\Enums\IcalChannel;
 use App\Enums\IcalDirection;
+use App\Policies\IcalFeedPolicy;
 use Database\Factories\IcalFeedFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 /**
  * last_status is null until the first sync, STATUS_OK after a sync that worked, and otherwise
@@ -30,12 +33,33 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'last_synced_at',
     'last_status',
 ])]
+#[UsePolicy(IcalFeedPolicy::class)]
 class IcalFeed extends Model
 {
     /** @use HasFactory<IcalFeedFactory> */
     use HasFactory, HasUuids;
 
     public const STATUS_OK = 'ok';
+
+    /**
+     * An export feed is served at a link only the OTA knows, so the token is made with the feed.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (IcalFeed $feed): void {
+            if ($feed->direction === IcalDirection::Export && blank($feed->export_token)) {
+                $feed->export_token = static::newExportToken();
+            }
+        });
+    }
+
+    /**
+     * Random and lower case only, so it reads the same however a calendar app cases the link.
+     */
+    public static function newExportToken(): string
+    {
+        return Str::lower(Str::random(40));
+    }
 
     /**
      * @return BelongsTo<RoomType, $this>

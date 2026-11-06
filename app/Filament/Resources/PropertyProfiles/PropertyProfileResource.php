@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\PropertyProfiles;
 
 use App\Filament\Resources\PropertyProfiles\Pages\EditPropertyProfile;
+use App\Filament\Resources\PropertyProfiles\Pages\ViewPropertyProfile;
 use App\Filament\Resources\PropertyProfiles\Schemas\PropertyProfileForm;
 use App\Models\PropertyProfile;
 use BackedEnum;
@@ -13,7 +14,8 @@ use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
 /**
- * The single property profile row: edited in place, never created or deleted from the panel.
+ * The single property profile row: edited in place by the owner, read-only for staff,
+ * never created or deleted from the panel.
  */
 class PropertyProfileResource extends Resource
 {
@@ -57,6 +59,16 @@ class PropertyProfileResource extends Resource
     {
         return [
             'index' => EditPropertyProfile::route('/'),
+            'view' => ViewPropertyProfile::route('/view'),
         ];
+    }
+
+    /**
+     * Staff may read the profile but not edit it, so their menu opens the read-only page.
+     * The policy does not look at the row, so an unsaved one is enough to ask it.
+     */
+    public static function getNavigationUrl(): string
+    {
+        return static::getUrl(static::canEdit(new PropertyProfile) ? 'index' : 'view');
     }
 }

@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Enums\PropertyType;
+use App\Policies\SystemSettingPolicy;
 use Database\Factories\PropertyProfileFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
@@ -33,6 +35,7 @@ use Illuminate\Support\Facades\Cache;
     'pending_reminder_hours',
     'confirm_on_deposit',
 ])]
+#[UsePolicy(SystemSettingPolicy::class)]
 class PropertyProfile extends Model
 {
     /** @use HasFactory<PropertyProfileFactory> */

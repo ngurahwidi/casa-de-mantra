@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
+use App\Policies\SystemSettingPolicy;
 use Database\Factories\CancellationPolicyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['name', 'rules', 'description'])]
+#[UsePolicy(SystemSettingPolicy::class)]
 class CancellationPolicy extends Model
 {
     /** @use HasFactory<CancellationPolicyFactory> */

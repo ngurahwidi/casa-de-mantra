@@ -25,10 +25,10 @@ class PropertyProfileResourceTest extends TestCase
             'bank_account_info' => ['bank' => 'Bank Example', 'account_name' => 'Casa Demo', 'account_number' => '123'],
         ]);
 
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->owner()->create());
     }
 
-    public function test_navigation_opens_the_single_profile_for_editing(): void
+    public function test_navigation_opens_the_single_profile_for_editing_by_the_owner(): void
     {
         $this->assertSame(url('/admin/property-profile'), PropertyProfileResource::getNavigationUrl());
 

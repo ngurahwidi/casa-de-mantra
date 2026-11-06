@@ -68,6 +68,8 @@ class MediaRelationManager extends RelationManager
                 Action::make('upload')
                     ->label('Upload photos')
                     ->icon(Heroicon::OutlinedArrowUpTray)
+                    // A custom action, so Filament does not hide it on the read-only view page by itself.
+                    ->hidden(fn (): bool => $this->isReadOnly())
                     ->schema([
                         FileUpload::make('photos')
                             ->image()

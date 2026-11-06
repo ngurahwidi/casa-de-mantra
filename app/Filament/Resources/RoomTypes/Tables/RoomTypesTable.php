@@ -6,6 +6,7 @@ use App\Filament\Resources\RoomTypes\RoomTypeResource;
 use App\Models\RoomType;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -50,6 +51,9 @@ class RoomTypesTable
                     ->label('Published'),
             ])
             ->recordActions([
+                // Staff may look at a room type but not change it.
+                ViewAction::make()
+                    ->hidden(fn (RoomType $record): bool => RoomTypeResource::canEdit($record)),
                 EditAction::make(),
                 Action::make('pricing')
                     ->icon(Heroicon::OutlinedBanknotes)

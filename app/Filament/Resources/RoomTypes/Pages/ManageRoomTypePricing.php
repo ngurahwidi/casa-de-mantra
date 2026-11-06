@@ -72,7 +72,8 @@ class ManageRoomTypePricing extends Page implements HasTable
     {
         $this->record = $this->resolveRecord($record);
 
-        abort_unless(static::getResource()::canEdit($this->getRecord()), 403);
+        // Prices are daily work: staff manage them too, although only the owner edits the room type.
+        abort_unless(static::getResource()::canView($this->getRecord()), 403);
 
         $this->calendarMonth = now(PropertyProfile::current()->timezone)->startOfMonth()->toDateString();
     }

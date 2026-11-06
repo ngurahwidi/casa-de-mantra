@@ -51,10 +51,23 @@ class AvailabilityTest extends TestCase
         $this->assertEquals([$export->id], IcalFeed::exports()->pluck('id')->all());
     }
 
+    public function test_export_feed_gets_its_own_lower_case_token(): void
+    {
+        $first = IcalFeed::factory()->export()->create(['export_token' => null]);
+        $second = IcalFeed::factory()->export()->create(['export_token' => null]);
+        $import = IcalFeed::factory()->create();
+
+        $this->assertMatchesRegularExpression('/^[a-z0-9]{40}$/', $first->export_token);
+        $this->assertNotSame($first->export_token, $second->export_token);
+        $this->assertNull($import->export_token);
+    }
+
     public function test_ical_feed_constraints_are_enforced_by_the_database(): void
     {
         $this->assertThrowsQuery(fn () => IcalFeed::factory()->create(['url' => null]));
-        $this->assertThrowsQuery(fn () => IcalFeed::factory()->export()->create(['export_token' => null]));
+        // The model fills a missing export token, so the constraint is checked around it.
+        $export = IcalFeed::factory()->export()->create();
+        $this->assertThrowsQuery(fn () => DB::table('ical_feeds')->where('id', $export->id)->update(['export_token' => null]));
 
         $feed = IcalFeed::factory()->create();
         $this->assertThrowsQuery(fn () => DB::table('ical_feeds')->where('id', $feed->id)->update(['channel' => 'agoda']));

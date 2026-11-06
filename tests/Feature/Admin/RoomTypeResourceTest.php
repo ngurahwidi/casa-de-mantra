@@ -31,7 +31,7 @@ class RoomTypeResourceTest extends TestCase
     {
         parent::setUp();
 
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->owner()->create());
     }
 
     public function test_list_shows_room_types(): void

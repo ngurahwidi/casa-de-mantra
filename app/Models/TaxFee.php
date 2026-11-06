@@ -4,8 +4,10 @@ namespace App\Models;
 
 use App\Enums\TaxFeeAppliesTo;
 use App\Enums\TaxFeeType;
+use App\Policies\SystemSettingPolicy;
 use Database\Factories\TaxFeeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -24,6 +26,7 @@ use Illuminate\Database\Eloquent\Model;
     'applies_to',
     'is_active',
 ])]
+#[UsePolicy(SystemSettingPolicy::class)]
 class TaxFee extends Model
 {
     /** @use HasFactory<TaxFeeFactory> */

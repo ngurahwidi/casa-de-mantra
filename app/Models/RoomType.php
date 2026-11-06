@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Policies\SystemSettingPolicy;
 use Database\Factories\RoomTypeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -24,6 +26,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
     'size_m2',
     'is_published',
 ])]
+#[UsePolicy(SystemSettingPolicy::class)]
 class RoomType extends Model implements HasMedia
 {
     /** @use HasFactory<RoomTypeFactory> */

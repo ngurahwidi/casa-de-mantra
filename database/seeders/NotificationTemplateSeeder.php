@@ -11,11 +11,8 @@ class NotificationTemplateSeeder extends Seeder
     /**
      * Create the default email templates; existing ones (matched by code + channel) are left untouched.
      *
-     * Placeholders use {{ variable }} and are filled by the notification renderer (T7.1):
-     * property_name, property_email, property_whatsapp, property_address, checkin_time, checkout_time,
-     * guest_name, guest_email, guest_phone, reservation_code, check_in, check_out, nights, adults,
-     * children, special_requests, total, status_url, payment_deadline, payment_instructions,
-     * reject_reason, cancel_reason, admin_url.
+     * Placeholders use {{ variable }} and are filled by the notification renderer (T7.1);
+     * the available ones are listed in NotificationTemplate::PLACEHOLDERS.
      */
     public function run(): void
     {

@@ -6,6 +6,7 @@ use App\Filament\Resources\RoomTypes\Pages\CreateRoomType;
 use App\Filament\Resources\RoomTypes\Pages\EditRoomType;
 use App\Filament\Resources\RoomTypes\Pages\ListRoomTypes;
 use App\Filament\Resources\RoomTypes\Pages\ManageRoomTypePricing;
+use App\Filament\Resources\RoomTypes\Pages\ViewRoomType;
 use App\Filament\Resources\RoomTypes\RelationManagers\AmenitiesRelationManager;
 use App\Filament\Resources\RoomTypes\RelationManagers\MediaRelationManager;
 use App\Filament\Resources\RoomTypes\RelationManagers\UnitsRelationManager;
@@ -51,10 +52,15 @@ class RoomTypeResource extends Resource
         ];
     }
 
+    /**
+     * "Details" opens the edit page for the owner and the read-only page for staff.
+     */
     public static function getRecordSubNavigation(Page $page): array
     {
+        $roomType = $page->getSubNavigationParameters()['record'] ?? null;
+
         return $page->generateNavigationItems([
-            EditRoomType::class,
+            $roomType instanceof RoomType && static::canEdit($roomType) ? EditRoomType::class : ViewRoomType::class,
             ManageRoomTypePricing::class,
         ]);
     }
@@ -64,6 +70,7 @@ class RoomTypeResource extends Resource
         return [
             'index' => ListRoomTypes::route('/'),
             'create' => CreateRoomType::route('/create'),
+            'view' => ViewRoomType::route('/{record}'),
             'edit' => EditRoomType::route('/{record}/edit'),
             'pricing' => ManageRoomTypePricing::route('/{record}/pricing'),
         ];
