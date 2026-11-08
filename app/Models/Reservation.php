@@ -22,6 +22,7 @@ use Illuminate\Support\Carbon;
  * with this reservation; use them to contact the guest about it, not the guest record.
  *
  * @property ReservationStatus $status
+ * @property ReservationSource $source
  * @property ReservationPaymentStatus $payment_status
  * @property Carbon $check_in
  * @property Carbon $check_out

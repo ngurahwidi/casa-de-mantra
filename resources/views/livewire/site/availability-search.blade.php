@@ -166,7 +166,13 @@
                 </div>
             @endif
 
-            <a href="{{ route('contact', ['villa' => $villa->slug]) }}" class="btn-primary mt-5 w-full">
+            <a href="{{ route('booking.create', [
+                'villa' => $villa->slug,
+                'check_in' => $checkIn,
+                'check_out' => $checkOut,
+                'adults' => $adults,
+                'children' => $children,
+            ]) }}" class="btn-primary mt-5 w-full">
                 Request to book
             </a>
         @else

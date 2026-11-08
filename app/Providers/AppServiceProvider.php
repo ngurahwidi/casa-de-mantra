@@ -7,6 +7,9 @@ use App\Contracts\ReservationProvider;
 use App\Services\Availability\InternalAvailabilityProvider;
 use App\Services\Reservation\InternalReservationProvider;
 use App\View\Composers\SiteLayoutComposer;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -39,5 +42,14 @@ class AppServiceProvider extends ServiceProvider
             ['layouts.public', 'site.*', 'components.site.*'],
             SiteLayoutComposer::class,
         );
+
+        RateLimiter::for('booking', function (Request $request): Limit {
+            return Limit::perMinute(5)
+                ->by($request->ip())
+                ->response(fn () => response(
+                    'Too many booking requests from this address. Please wait a minute and try again.',
+                    429,
+                ));
+        });
     }
 }

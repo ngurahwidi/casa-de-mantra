@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Site\AboutController;
+use App\Http\Controllers\Site\BookingController;
 use App\Http\Controllers\Site\ContactController;
 use App\Http\Controllers\Site\FaqController;
 use App\Http\Controllers\Site\GalleryController;
@@ -16,6 +17,12 @@ Route::get('/', HomeController::class)->name('home');
 
 Route::get('/villa', [VillaController::class, 'index'])->name('villas.index');
 Route::get('/villa/{slug}', [VillaController::class, 'show'])->name('villas.show');
+
+Route::get('/villa/{villa:slug}/book', [BookingController::class, 'create'])->name('booking.create');
+Route::post('/villa/{villa:slug}/book', [BookingController::class, 'store'])
+    ->middleware('throttle:booking')
+    ->name('booking.store');
+Route::get('/booking/success/{code}', [BookingController::class, 'success'])->name('booking.success');
 
 Route::get('/gallery', GalleryController::class)->name('gallery');
 Route::get('/location', LocationController::class)->name('location');
