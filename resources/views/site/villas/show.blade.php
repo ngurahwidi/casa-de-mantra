@@ -156,34 +156,7 @@
                         @endif
                     </p>
 
-                    <div class="mt-6 space-y-3 border-y border-[var(--color-line)] py-5 text-sm">
-                        <div class="flex items-center justify-between gap-4">
-                            <span class="text-[var(--color-muted)]">Guests</span>
-                            <span class="font-medium">Up to {{ $villa->max_adults }}</span>
-                        </div>
-                        <div class="flex items-center justify-between gap-4">
-                            <span class="text-[var(--color-muted)]">Bedrooms</span>
-                            <span class="font-medium">{{ $villa->bedrooms }}</span>
-                        </div>
-                        <div class="flex items-center justify-between gap-4">
-                            <span class="text-[var(--color-muted)]">Policy</span>
-                            <span class="font-medium">{{ $policy?->name ?? 'Confirmed before booking' }}</span>
-                        </div>
-                    </div>
-
-                    <a href="{{ route('contact', ['villa' => $villa->slug]) }}" class="btn-primary mt-6 w-full">
-                        Request this villa
-                    </a>
-
-                    @if ($whatsappUrl)
-                        <a href="{{ $whatsappUrl }}" target="_blank" rel="noopener noreferrer" class="btn-outline mt-3 w-full">
-                            Ask on WhatsApp
-                        </a>
-                    @endif
-
-                    <p class="mt-4 text-center text-[11px] leading-5 text-[var(--color-muted)]">
-                        No payment is taken online. We confirm availability with you first.
-                    </p>
+                    <livewire:site.availability-search :villa="$villa" />
                 </div>
             </aside>
         </div>

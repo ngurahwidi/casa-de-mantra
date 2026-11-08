@@ -24,14 +24,18 @@
                 {{ data_get($profile, 'seo_settings.meta_description') ?: 'Slow mornings, long afternoons by the pool, and evenings that stretch a little further. Book directly with the people who look after the villa.' }}
             </p>
 
-            <div class="mt-8 flex flex-wrap items-center gap-3">
-                <a href="#villas" class="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--color-paper)] px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-primary)] transition hover:opacity-90">
-                    Explore villas
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12l7 7 7-7" />
-                    </svg>
-                </a>
-                <a href="{{ route('contact') }}" class="btn-light">Ask a question</a>
+            <div class="mt-8 w-full">
+                @if ($profile)
+                    <livewire:site.home-search :max-guests="$maxGuests" />
+
+                    <p class="mt-3 flex items-center gap-2 text-[11px] leading-5 text-white/60">
+                        <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                            <circle cx="12" cy="12" r="9" />
+                            <path stroke-linecap="round" d="M12 11v5M12 8h.01" />
+                        </svg>
+                        Rates are per night and confirmed before booking. All stays are non-refundable.
+                    </p>
+                @endif
             </div>
         </div>
     </section>
@@ -69,14 +73,65 @@
                 </a>
             </div>
 
+            @if ($stayQuery !== null)
+                @php
+                    $availableCount = collect($stays)->filter(fn ($stay) => $stay->isAvailable)->count();
+                    $policies = collect($stays)
+                        ->filter(fn ($stay) => $stay->isAvailable && $stay->policy !== null)
+                        ->map(fn ($stay) => $stay->policy->name)
+                        ->unique()
+                        ->values();
+                    $formatStayDate = fn (string $date) => \Carbon\CarbonImmutable::parse($date)->format('j M Y');
+                @endphp
+
+                <div class="mt-8 flex flex-col gap-3 rounded-2xl border border-[var(--color-line)] bg-[#FCFAF4] px-5 py-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+                    <p class="leading-6">
+                        <span class="font-semibold">{{ $availableCount }} of {{ $villas->count() }} {{ \Illuminate\Support\Str::plural('villa', $villas->count()) }} available</span>
+                        <span class="text-[var(--color-muted)]">
+                            for {{ $formatStayDate($stayQuery->checkIn->toDateString()) }} – {{ $formatStayDate($stayQuery->checkOut->toDateString()) }}
+                            · {{ $stayQuery->guests }} {{ \Illuminate\Support\Str::plural('guest', $stayQuery->guests) }}
+                            @if ($policies->isNotEmpty())
+                                · {{ $policies->implode(' / ') }}
+                            @endif
+                        </span>
+                    </p>
+                    <a href="{{ route('home') }}#villas" class="inline-flex shrink-0 items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-primary)] transition hover:gap-3">
+                        Clear dates
+                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                            <path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+                        </svg>
+                    </a>
+                </div>
+
+                @if ($availableCount === 0)
+                    <p class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs leading-6 text-[var(--color-muted)]">
+                        Nothing fits these dates exactly.
+                        @if ($whatsappUrl)
+                            <a href="{{ $whatsappUrl }}" target="_blank" rel="noopener noreferrer" class="font-semibold uppercase tracking-[0.14em] text-[var(--color-primary)] underline underline-offset-4">
+                                Ask us about other dates
+                            </a>
+                        @endif
+                    </p>
+                @endif
+            @endif
+
             @if ($villas->isNotEmpty())
                 <div class="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     @foreach ($villas as $villa)
-                        <x-site.villa-card :villa="$villa" :price="$prices[$villa->id] ?? null" />
+                        <x-site.villa-card
+                            :villa="$villa"
+                            :price="$prices[$villa->id] ?? null"
+                            :stay="$stays[$villa->id] ?? null"
+                            :stay-query="$stayQuery"
+                        />
                     @endforeach
                 </div>
                 <p class="mt-5 max-w-2xl text-xs leading-5 text-[var(--color-muted)]">
-                    Rates are per night and subject to availability. All stays are non-refundable; the full policy is confirmed before you book.
+                    @if ($stayQuery !== null)
+                        Totals are for the nights selected above. Availability is checked again when we confirm your request.
+                    @else
+                        Rates are per night and subject to availability. All stays are non-refundable; the full policy is confirmed before you book.
+                    @endif
                 </p>
             @else
                 <div class="mt-10 rounded-2xl border border-[var(--color-line)] bg-[#FCFAF4] p-8">

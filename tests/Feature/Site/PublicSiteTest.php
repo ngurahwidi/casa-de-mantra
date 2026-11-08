@@ -141,7 +141,7 @@ class PublicSiteTest extends TestCase
             ->assertSee('Rp2.500.000')
             ->assertSee('Non-Refundable policy')
             ->assertSee('No refunds are available after a booking is confirmed.')
-            ->assertSee('Request this villa');
+            ->assertSee('Choose your dates to see the price for your stay.');
     }
 
     public function test_unpublished_villa_is_not_publicly_visible(): void

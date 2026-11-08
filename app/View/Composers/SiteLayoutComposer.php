@@ -6,6 +6,7 @@ use App\Models\PropertyProfile;
 use App\Models\RoomType;
 use App\Services\Site\PropertySchema;
 use App\Services\Site\VillaCatalog;
+use App\Support\WhatsApp;
 use Illuminate\View\View;
 
 /**
@@ -41,20 +42,7 @@ class SiteLayoutComposer
             'defaultSchema' => $profile === null
                 ? null
                 : $this->schema->forProfile($profile, $villas),
-            'whatsappUrl' => $this->whatsappUrl($profile),
+            'whatsappUrl' => WhatsApp::url($profile),
         ]);
-    }
-
-    private function whatsappUrl(?PropertyProfile $profile): ?string
-    {
-        $number = preg_replace('/\D+/', '', (string) $profile?->whatsapp);
-
-        if ($number === '') {
-            return null;
-        }
-
-        $message = rawurlencode(sprintf('Hello %s, I would like to ask about a stay.', $profile->name));
-
-        return "https://wa.me/{$number}?text={$message}";
     }
 }
