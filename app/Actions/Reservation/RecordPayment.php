@@ -31,6 +31,10 @@ use Illuminate\Support\Facades\DB;
  * reach the total (overpayment included), deposit below it. The reservation row is locked
  * while doing so, so two payments recorded at once are both counted.
  *
+ * When the admin names the guest's transfer proof, that pending payment becomes the paid one
+ * and keeps its file, so one transfer is one payment. Once the total is reached, any other
+ * proofs still waiting are closed as expired: there is nothing left for them to verify.
+ *
  * When the payment makes the reservation eligible (see ConfirmReservation::isPaidEnough), it
  * is confirmed right after, in a separate transaction: money that was received stays recorded
  * even if the confirmation fails, and the failure is returned instead of thrown.
@@ -40,8 +44,8 @@ class RecordPayment
     public function __construct(private readonly ConfirmReservation $confirm) {}
 
     /**
-     * @throws PaymentNotAcceptedException when the reservation does not take payments, the amount is invalid
-     *                                     or the payment is dated in the future
+     * @throws PaymentNotAcceptedException when the reservation does not take payments, the amount is invalid,
+     *                                     the payment is dated in the future or the named proof is not pending
      */
     public function handle(Reservation $reservation, User $admin, PaymentDetails $details): RecordedPayment
     {
@@ -62,7 +66,16 @@ class RecordPayment
                 throw PaymentNotAcceptedException::notPayable($locked->status);
             }
 
-            $payment = $locked->payments()->create([
+            $guestProof = null;
+
+            if ($details->guestProofId !== null) {
+                $guestProof = $locked->pendingPaymentProofs()->whereKey($details->guestProofId)->first()
+                    ?? throw PaymentNotAcceptedException::proofNoLongerPending();
+            }
+
+            $payment = $guestProof ?? $locked->payments()->make();
+
+            $payment->fill([
                 'verified_by' => $admin->getKey(),
                 'amount' => $amount,
                 'method' => $details->method,
@@ -70,8 +83,8 @@ class RecordPayment
                 'provider' => null,
                 'provider_ref' => self::clean($details->reference),
                 'paid_at' => $details->paidAt ?? now(),
-                'proof_url' => self::clean($details->proofPath),
-            ]);
+                'proof_url' => self::clean($details->proofPath) ?? $guestProof?->proof_url,
+            ])->save();
 
             $paid = (string) $locked->payments()->where('status', PaymentStatus::Paid)->sum('amount');
 
@@ -80,6 +93,10 @@ class RecordPayment
                     ? ReservationPaymentStatus::Paid
                     : ReservationPaymentStatus::Deposit,
             ]);
+
+            if ($locked->payment_status === ReservationPaymentStatus::Paid) {
+                $locked->pendingPaymentProofs()->update(['status' => PaymentStatus::Expired]);
+            }
 
             OutboxEvent::create([
                 'type' => 'payment.recorded',

@@ -194,6 +194,18 @@ class CancelReservationTest extends TestCase
         $this->assertNotCancelled($reservation, 'Too late.', InvalidStatusTransitionException::class, null, ReservationStatus::Rejected);
     }
 
+    public function test_cancelling_closes_proofs_still_waiting_and_leaves_paid_payments_alone(): void
+    {
+        $reservation = Reservation::factory()->awaitingPayment()->create();
+        $waiting = Payment::factory()->for($reservation)->create();
+        $paid = Payment::factory()->paid()->for($reservation)->create();
+
+        $this->cancel->handle($reservation, $this->admin, 'Guest changed plans.');
+
+        $this->assertSame(PaymentStatus::Expired, $waiting->refresh()->status);
+        $this->assertSame(PaymentStatus::Paid, $paid->refresh()->status);
+    }
+
     /**
      * @param  class-string<Throwable>  $exception
      */

@@ -41,6 +41,7 @@
                 <p class="eyebrow !text-white/60">Guest information</p>
                 <nav class="mt-5 flex flex-col items-start gap-3 text-sm text-white/80" aria-label="Policy navigation">
                     <a class="transition hover:text-white" href="{{ route('policies.index') }}">Policies</a>
+                    <a class="transition hover:text-white" href="{{ route('booking.status') }}">Check booking</a>
                     <a class="transition hover:text-white" href="{{ route('contact') }}">Contact</a>
                     @if ($whatsappUrl)
                         <a class="transition hover:text-white" href="{{ $whatsappUrl }}" target="_blank" rel="noopener noreferrer">WhatsApp</a>

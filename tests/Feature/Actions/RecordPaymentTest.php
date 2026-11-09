@@ -338,6 +338,97 @@ class RecordPaymentTest extends TestCase
         $this->assertSame(ReservationPaymentStatus::Unpaid, $reservation->fresh()->payment_status);
     }
 
+    public function test_recording_against_a_guest_proof_turns_that_proof_into_the_payment(): void
+    {
+        $reservation = $this->awaitingPayment();
+        $proof = Payment::factory()->for($reservation)->create(['proof_url' => 'payment-proofs/guest.jpg']);
+
+        $result = $this->record->handle($reservation, $this->admin, new PaymentDetails(
+            amount: '4500000',
+            method: PaymentMethod::BankTransfer,
+            reference: 'TRX-9',
+            guestProofId: $proof->id,
+        ));
+
+        $payment = Payment::query()->sole();
+        $this->assertTrue($result->payment->is($proof));
+        $this->assertSame($proof->id, $payment->id);
+        $this->assertSame(PaymentStatus::Paid, $payment->status);
+        $this->assertSame($this->admin->id, $payment->verified_by);
+        $this->assertSame('payment-proofs/guest.jpg', $payment->proof_url);
+        $this->assertSame('TRX-9', $payment->provider_ref);
+        $this->assertSame('2026-11-01 08:00:00', $payment->paid_at->toDateTimeString());
+
+        $this->assertSame(ReservationStatus::Confirmed, $reservation->fresh()->status);
+    }
+
+    public function test_the_amount_entered_by_the_admin_replaces_the_amount_on_the_proof(): void
+    {
+        $reservation = $this->awaitingPayment();
+        $proof = Payment::factory()->for($reservation)->create(['amount' => 4500000]);
+
+        $this->record->handle($reservation, $this->admin, new PaymentDetails('1000000', PaymentMethod::BankTransfer, guestProofId: $proof->id));
+
+        $this->assertSame('1000000.00', $proof->refresh()->amount);
+
+        $fresh = $reservation->fresh();
+        $this->assertSame(ReservationPaymentStatus::Deposit, $fresh->payment_status);
+        $this->assertSame(ReservationStatus::AwaitingPayment, $fresh->status);
+    }
+
+    public function test_full_payment_closes_the_other_proofs_still_waiting(): void
+    {
+        $reservation = $this->awaitingPayment();
+        $settled = Payment::factory()->for($reservation)->create();
+        $duplicate = Payment::factory()->for($reservation)->create();
+
+        $this->record->handle($reservation, $this->admin, new PaymentDetails('4500000', PaymentMethod::BankTransfer, guestProofId: $settled->id));
+
+        $this->assertSame(PaymentStatus::Paid, $settled->refresh()->status);
+        $this->assertSame(PaymentStatus::Expired, $duplicate->refresh()->status);
+    }
+
+    public function test_a_deposit_leaves_the_other_proofs_waiting(): void
+    {
+        $reservation = $this->awaitingPayment();
+        $waiting = Payment::factory()->for($reservation)->create();
+
+        $this->record->handle($reservation, $this->admin, $this->payment('1000000'));
+
+        $this->assertSame(PaymentStatus::Pending, $waiting->refresh()->status);
+    }
+
+    public function test_a_proof_that_is_no_longer_pending_is_refused_and_records_nothing(): void
+    {
+        $reservation = $this->awaitingPayment();
+        $rejected = Payment::factory()->for($reservation)->create(['status' => PaymentStatus::Failed]);
+
+        try {
+            $this->record->handle($reservation, $this->admin, new PaymentDetails('4500000', PaymentMethod::BankTransfer, guestProofId: $rejected->id));
+            $this->fail('Expected PaymentNotAcceptedException.');
+        } catch (PaymentNotAcceptedException $e) {
+            $this->assertSame('This transfer proof has already been dealt with. Reload the page to see its status.', $e->getMessage());
+        }
+
+        $this->assertSame(PaymentStatus::Failed, $rejected->refresh()->status);
+        $this->assertSame(1, Payment::query()->count());
+        $this->assertSame(ReservationStatus::AwaitingPayment, $reservation->fresh()->status);
+    }
+
+    public function test_a_proof_of_another_reservation_is_refused(): void
+    {
+        $reservation = $this->awaitingPayment();
+        $otherProof = Payment::factory()->for(Reservation::factory()->awaitingPayment())->create();
+
+        $this->expectException(PaymentNotAcceptedException::class);
+
+        try {
+            $this->record->handle($reservation, $this->admin, new PaymentDetails('4500000', PaymentMethod::BankTransfer, guestProofId: $otherProof->id));
+        } finally {
+            $this->assertSame(PaymentStatus::Pending, $otherProof->refresh()->status);
+        }
+    }
+
     /**
      * An approved, unpaid reservation of 4,500,000 holding the unit for 24–27 Dec.
      */

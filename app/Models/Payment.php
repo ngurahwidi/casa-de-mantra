@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
+ * @property PaymentStatus $status
  * @property string $amount decimal with two places
  * @property Carbon|null $paid_at
  */

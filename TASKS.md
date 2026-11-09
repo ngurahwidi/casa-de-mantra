@@ -211,14 +211,15 @@ Semua service punya test. Gunakan data deterministik dan `Carbon::setTestNow`.
 
 ### T4.6 Record payment dan confirm
 
-- `RecordPayment`: buat `payments` (status `paid`), isi `paid_at`, `proof_url`, `verified_by`; hitung `payment_status` (`deposit` jika total pembayaran < total, `paid` jika >=).
+- `RecordPayment`: buat `payments` (status `paid`), isi `paid_at`, `proof_url`, `verified_by`; hitung `payment_status` (`deposit` jika total pembayaran < total, `paid` jika >=). Jika admin memilih bukti transfer tamu (payment `pending` dari T6.4), baris itu yang diubah menjadi `paid` dan tetap memakai file buktinya, bukan membuat baris baru. Saat `payment_status` menjadi `paid`, bukti lain yang masih `pending` ditutup menjadi `expired`.
+- `RejectPaymentProof`: bukti transfer `pending` yang tidak cocok dengan pembayaran diterima diubah menjadi `failed`, isi `verified_by`, file tetap disimpan. Status reservasi tidak berubah dan tamu dapat mengunggah bukti lain.
 - `ConfirmReservation`: dalam transaksi, validasi ulang ketersediaan, transisi ke `confirmed`, isi `confirmed_at`. Jika `payment_status = paid`, otomatis dipanggil setelah `RecordPayment`; kebijakan untuk DP (confirm atau tidak) dibuat sebagai pengaturan di `property_profiles` (`confirm_on_deposit`, default `false`).
-- **Test:** pembayaran penuh, kurang, lebih, pembayaran setelah expired ditolak (admin harus `ReactivateReservation` terlebih dahulu).
+- **Test:** pembayaran penuh, kurang, lebih, pembayaran setelah expired ditolak (admin harus `ReactivateReservation` terlebih dahulu), pembayaran dari bukti tamu (tidak menambah baris, file tetap), penutupan bukti lain saat lunas, penolakan bukti, bukti yang sudah ditangani atau milik reservasi lain ditolak.
 
 ### T4.7 Cancel, expire, reactivate, complete
 
-- `CancelReservation` (alasan wajib, kebijakan non-refundable: tidak ada refund otomatis, catat di log).
-- `ExpireStaleReservations`: untuk reservasi `awaiting_payment` dengan `expires_at < now`, transisi ke `expired` dan lepas tanggal.
+- `CancelReservation` (alasan wajib, kebijakan non-refundable: tidak ada refund otomatis, catat di log). Bukti transfer yang masih `pending` ditutup menjadi `expired`.
+- `ExpireStaleReservations`: untuk reservasi `awaiting_payment` dengan `expires_at < now`, transisi ke `expired` dan lepas tanggal. Reservasi yang masih punya bukti transfer `pending` tidak di-expire dan tetap menahan tanggal sampai admin mencatat pembayaran atau menolak bukti tersebut; pemeriksaan bukti dilakukan setelah baris reservasi dikunci.
 - `ReactivateReservation`: hanya jika tanggal masih tersedia.
 - `CompleteReservation`: untuk `confirmed` yang `check_out < today` (timezone property).
 

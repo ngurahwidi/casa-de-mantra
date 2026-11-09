@@ -29,6 +29,9 @@
                     <p class="mt-3 text-xs leading-5 text-[var(--color-muted)]">
                         Keep this code. You will need it when we contact you about your stay.
                     </p>
+                    <a href="{{ route('booking.status', ['code' => $reservation->code]) }}" class="btn-outline mt-5">
+                        Check booking status
+                    </a>
                 </div>
 
                 <div class="rounded-2xl border border-[var(--color-line)] bg-[#FCFAF4] p-6 sm:p-7">

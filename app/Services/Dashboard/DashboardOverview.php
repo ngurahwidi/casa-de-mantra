@@ -40,7 +40,7 @@ class DashboardOverview
     /**
      * Unpaid reservations awaiting payment whose payment window ends within
      * PAYMENT_DUE_WITHIN_HOURS, or has ended but ExpireStaleReservations has not run yet.
-     * Reservations with a deposit never expire, so they are left out.
+     * Reservations with a deposit or a transfer proof waiting do not expire, so they are left out.
      *
      * @return Builder<Reservation> soonest to expire first
      */
@@ -50,7 +50,18 @@ class DashboardOverview
             ->where('status', ReservationStatus::AwaitingPayment)
             ->where('payment_status', ReservationPaymentStatus::Unpaid)
             ->where('expires_at', '<=', now()->addHours(self::PAYMENT_DUE_WITHIN_HOURS))
+            ->whereDoesntHave('pendingPaymentProofs')
             ->orderBy('expires_at');
+    }
+
+    /**
+     * Reservations with a transfer proof from the guest that an admin still has to check.
+     *
+     * @return Builder<Reservation>
+     */
+    public function proofsToVerify(): Builder
+    {
+        return Reservation::query()->whereHas('pendingPaymentProofs');
     }
 
     /**

@@ -32,6 +32,7 @@ class ReservationStatsOverview extends StatsOverviewWidget
         return [
             $this->pendingRequests($overview),
             $this->paymentsDue($overview),
+            $this->proofsToVerify($overview),
             Stat::make('Check-ins today', $overview->checkInsToday()->count())
                 ->icon(Heroicon::OutlinedArrowRightEndOnRectangle),
             Stat::make('Check-outs today', $overview->checkOutsToday()->count())
@@ -70,6 +71,19 @@ class ReservationStatsOverview extends StatsOverviewWidget
             ->icon(Heroicon::OutlinedClock)
             ->description('Unpaid, expiring within '.DashboardOverview::PAYMENT_DUE_WITHIN_HOURS.' hours')
             ->color($count > 0 ? 'danger' : 'gray');
+    }
+
+    private function proofsToVerify(DashboardOverview $overview): Stat
+    {
+        $count = $overview->proofsToVerify()->count();
+
+        return Stat::make('Transfer proofs to verify', $count)
+            ->icon(Heroicon::OutlinedDocumentMagnifyingGlass)
+            ->description('Uploaded by guests, dates held until checked')
+            ->color($count > 0 ? 'warning' : 'gray')
+            ->url(ReservationResource::getUrl('index', [
+                'filters' => ['proof_to_verify' => ['isActive' => true]],
+            ]));
     }
 
     private function notBlockedOnOta(DashboardOverview $overview): Stat

@@ -15,11 +15,13 @@ use Illuminate\Support\Facades\DB;
  *
  * Only unpaid reservations expire. One that received a deposit, or was paid in full but could
  * not be confirmed, keeps its dates for an admin to settle: RecordPayment no longer accepts
- * payments once a reservation is expired.
+ * payments once a reservation is expired. The same goes for one with a transfer proof waiting
+ * for an admin: the guest may already have paid, so it stays until the proof is dealt with.
  *
  * Each reservation is expired in a transaction of its own, after locking it and checking again
- * that it is still due, so a payment or cancellation recorded meanwhile wins. Its rooms keep
- * their unit, which ReactivateReservation tries first.
+ * that it is still due, so a payment, proof or cancellation recorded meanwhile wins. The proof
+ * check runs after the lock is held, so it also sees a proof committed while waiting for it.
+ * Its rooms keep their unit, which ReactivateReservation tries first.
  */
 class ExpireStaleReservations
 {
@@ -34,11 +36,11 @@ class ExpireStaleReservations
     {
         $expired = 0;
 
-        foreach ($this->due()->orderBy('expires_at')->pluck('id') as $id) {
+        foreach ($this->due()->whereDoesntHave('pendingPaymentProofs')->orderBy('expires_at')->pluck('id') as $id) {
             $expired += (int) DB::transaction(function () use ($id): bool {
                 $reservation = $this->due()->whereKey($id)->lockForUpdate()->first();
 
-                if ($reservation === null) {
+                if ($reservation === null || $reservation->pendingPaymentProofs()->exists()) {
                     return false;
                 }
 

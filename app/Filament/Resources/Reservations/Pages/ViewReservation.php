@@ -8,6 +8,7 @@ use App\Actions\Reservation\CompleteReservation;
 use App\Actions\Reservation\MarkOtaBlocked;
 use App\Actions\Reservation\ReactivateReservation;
 use App\Actions\Reservation\RecordPayment;
+use App\Actions\Reservation\RejectPaymentProof;
 use App\Actions\Reservation\RejectReservation;
 use App\Data\Reservation\PaymentDetails;
 use App\Enums\PaymentMethod;
@@ -29,6 +30,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Support\Icons\Heroicon;
 
 /**
@@ -94,11 +96,19 @@ class ViewReservation extends ViewRecord
                     || ($this->hasStatus(ReservationStatus::Confirmed) && $this->reservation()->payment_status !== ReservationPaymentStatus::Paid))
                 ->modalDescription(fn (): string => 'Total '.$this->reservation()->currency.' '.number_format((float) $this->reservation()->total, 2).'.')
                 ->fillForm(fn (): array => [
+                    'guest_proof' => array_key_first($this->pendingProofOptions()),
                     'amount' => $this->reservation()->payment_status === ReservationPaymentStatus::Unpaid ? $this->reservation()->total : null,
                     'method' => PaymentMethod::BankTransfer->value,
                     'paid_at' => now(),
                 ])
                 ->schema([
+                    Select::make('guest_proof')
+                        ->label('Guest transfer proof')
+                        ->options(fn (): array => $this->pendingProofOptions())
+                        ->placeholder('Not from a guest proof')
+                        ->helperText('The proof this payment confirms. Open it from the Payments section and check it against your bank statement first.')
+                        ->live()
+                        ->visible(fn (): bool => $this->pendingProofOptions() !== []),
                     TextInput::make('amount')
                         ->prefix(fn (): string => $this->reservation()->currency)
                         ->required()
@@ -125,11 +135,33 @@ class ViewReservation extends ViewRecord
                         ->visibility('private')
                         ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
                         ->maxSize(5120)
-                        ->helperText('JPG, PNG, WebP or PDF, up to 5 MB.'),
+                        ->helperText('JPG, PNG, WebP or PDF, up to 5 MB.')
+                        ->hidden(fn (Get $get): bool => filled($get('guest_proof'))),
                 ])
                 ->action(function (array $data, Action $action): void {
                     $this->recordPayment($data, $action);
                 }),
+            Action::make('rejectProof')
+                ->label('Reject proof')
+                ->icon(Heroicon::OutlinedDocumentMagnifyingGlass)
+                ->color('danger')
+                ->visible(fn (): bool => $this->pendingProofOptions() !== [])
+                ->modalHeading('Reject transfer proof')
+                ->modalDescription('The guest is told the proof could not be verified and can upload another. Without a proof waiting, a reservation past its payment deadline expires on the next run.')
+                ->modalSubmitActionLabel('Reject proof')
+                ->fillForm(fn (): array => ['proof' => array_key_first($this->pendingProofOptions())])
+                ->schema([
+                    Select::make('proof')
+                        ->label('Transfer proof')
+                        ->options(fn (): array => $this->pendingProofOptions())
+                        ->required(),
+                ])
+                ->action(fn (array $data, Action $action) => $this->run(
+                    $action,
+                    'Proof not rejected',
+                    'Transfer proof rejected',
+                    fn () => app(RejectPaymentProof::class)->handle($this->reservation(), $data['proof'], $this->admin()),
+                )),
             Action::make('otaBlocked')
                 ->label(fn (): string => $this->reservation()->ota_blocked_at === null ? 'Mark as blocked on OTA' : 'Clear "Blocked on OTA"')
                 ->icon(fn (): Heroicon => $this->reservation()->ota_blocked_at === null ? Heroicon::OutlinedLockClosed : Heroicon::OutlinedLockOpen)
@@ -214,6 +246,7 @@ class ViewReservation extends ViewRecord
             paidAt: CarbonImmutable::parse($data['paid_at']),
             reference: $data['reference'] ?? null,
             proofPath: $data['proof'] ?? null,
+            guestProofId: $data['guest_proof'] ?? null,
         );
 
         $wasAwaitingPayment = $this->hasStatus(ReservationStatus::AwaitingPayment);
@@ -266,6 +299,18 @@ class ViewReservation extends ViewRecord
         $this->reservation()->refresh();
 
         Notification::make()->success()->title(value($success))->send();
+    }
+
+    /**
+     * The guest's transfer proofs still waiting for an admin, newest first.
+     *
+     * @return array<string, string> payment id => when it was uploaded
+     */
+    private function pendingProofOptions(): array
+    {
+        return $this->reservation()->pendingPaymentProofs()->latest()->get()
+            ->mapWithKeys(fn (Payment $proof): array => [$proof->id => ReservationResource::proofUploadedLabel($proof)])
+            ->all();
     }
 
     private function hasStatus(ReservationStatus $status): bool

@@ -19,6 +19,11 @@ class PaymentNotAcceptedException extends ReservationException
         return new self("Payments can only be recorded for reservations awaiting payment or confirmed; this one is {$status->value}.");
     }
 
+    public static function proofNoLongerPending(): self
+    {
+        return new self('This transfer proof has already been dealt with. Reload the page to see its status.');
+    }
+
     public static function receivedInTheFuture(): self
     {
         return new self('The payment cannot be received in the future.');

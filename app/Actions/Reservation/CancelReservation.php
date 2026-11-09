@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reservation;
 
+use App\Enums\PaymentStatus;
 use App\Enums\ReservationPaymentStatus;
 use App\Enums\ReservationStatus;
 use App\Exceptions\Reservation\InvalidStatusTransitionException;
@@ -17,7 +18,8 @@ use Illuminate\Support\Facades\DB;
  * The reason is the note of the status log entry. Once cancelled the reservation no longer
  * holds its dates; its rooms keep their unit for the record. The rate is non-refundable, so
  * nothing is refunded and payment_status stays as it is. When money was received, the log
- * note says so; an exceptional refund is recorded by hand.
+ * note says so; an exceptional refund is recorded by hand. Transfer proofs still waiting are
+ * closed as expired, as no admin will verify them any more.
  */
 class CancelReservation
 {
@@ -45,6 +47,8 @@ class CancelReservation
             $note = $locked->payment_status === ReservationPaymentStatus::Unpaid
                 ? $reason
                 : $reason."\n".self::NO_REFUND_NOTE;
+
+            $locked->pendingPaymentProofs()->update(['status' => PaymentStatus::Expired]);
 
             return $this->stateMachine->transition($reservation, ReservationStatus::Cancelled, $actor, $note);
         });

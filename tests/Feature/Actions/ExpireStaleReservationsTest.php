@@ -4,9 +4,11 @@ namespace Tests\Feature\Actions;
 
 use App\Actions\Reservation\ExpireStaleReservations;
 use App\Contracts\AvailabilityProvider;
+use App\Enums\PaymentStatus;
 use App\Enums\ReservationPaymentStatus;
 use App\Enums\ReservationStatus;
 use App\Models\OutboxEvent;
+use App\Models\Payment;
 use App\Models\RatePlan;
 use App\Models\Reservation;
 use App\Models\ReservationRoom;
@@ -137,6 +139,26 @@ class ExpireStaleReservationsTest extends TestCase
 
         $this->assertTrue($availability->isAvailable($roomType, $reservation->check_in, $reservation->check_out));
         $this->assertSame($unit->id, ReservationRoom::query()->sole()->unit_id);
+    }
+
+    public function test_reservation_with_a_proof_waiting_for_an_admin_is_kept(): void
+    {
+        $reservation = $this->awaitingPayment('2026-11-01 07:00:00');
+        Payment::factory()->for($reservation)->create();
+
+        $this->assertSame(0, $this->expire->handle());
+
+        $this->assertSame(ReservationStatus::AwaitingPayment, $reservation->fresh()->status);
+    }
+
+    public function test_reservation_whose_proof_was_rejected_expires(): void
+    {
+        $reservation = $this->awaitingPayment('2026-11-01 07:00:00');
+        Payment::factory()->for($reservation)->create(['status' => PaymentStatus::Failed]);
+
+        $this->assertSame(1, $this->expire->handle());
+
+        $this->assertSame(ReservationStatus::Expired, $reservation->fresh()->status);
     }
 
     private function awaitingPayment(

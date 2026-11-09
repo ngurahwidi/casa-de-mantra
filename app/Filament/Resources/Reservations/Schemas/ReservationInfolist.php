@@ -39,6 +39,10 @@ class ReservationInfolist
                     ->warning()
                     ->visible(fn (Reservation $record): bool => in_array($record->status, [ReservationStatus::Pending, ...ReservationStatus::blockingAvailability()], true)
                         && self::overlapping($record)->isNotEmpty()),
+                Callout::make('Transfer proof to verify')
+                    ->description('The guest uploaded a transfer proof. Compare it with your bank statement, then use Record payment if the money arrived or Reject proof if it did not. The dates stay held until then.')
+                    ->info()
+                    ->visible(fn (Reservation $record): bool => $record->pendingPaymentProofs()->exists()),
                 Section::make('Stay')
                     ->columns(3)
                     ->schema([
@@ -142,6 +146,7 @@ class ReservationInfolist
                             ->placeholder('Not recorded'),
                     ]),
                 Section::make('Payments')
+                    ->description('Transfer proofs uploaded by the guest appear here as awaiting verification until an admin records the payment or rejects the proof.')
                     ->columns(3)
                     ->schema([
                         TextEntry::make('payment_status')
@@ -158,6 +163,7 @@ class ReservationInfolist
                             ->state(fn (Reservation $record): Collection => $record->payments()->with(['verifier', 'reservation'])->orderBy('paid_at')->get())
                             ->placeholder('No payments recorded yet.')
                             ->table([
+                                TableColumn::make('Status'),
                                 TableColumn::make('Received'),
                                 TableColumn::make('Amount'),
                                 TableColumn::make('Method'),
@@ -166,9 +172,25 @@ class ReservationInfolist
                                 TableColumn::make('Proof'),
                             ])
                             ->schema([
+                                TextEntry::make('status')
+                                    ->badge()
+                                    ->formatStateUsing(fn (PaymentStatus $state): string => match ($state) {
+                                        PaymentStatus::Pending => 'Awaiting verification',
+                                        PaymentStatus::Paid => 'Paid',
+                                        PaymentStatus::Failed => 'Rejected',
+                                        PaymentStatus::Refunded => 'Refunded',
+                                        PaymentStatus::Expired => 'Closed',
+                                    })
+                                    ->color(fn (PaymentStatus $state): string => match ($state) {
+                                        PaymentStatus::Paid => 'success',
+                                        PaymentStatus::Pending => 'warning',
+                                        PaymentStatus::Refunded => 'info',
+                                        PaymentStatus::Failed, PaymentStatus::Expired => 'danger',
+                                    }),
                                 TextEntry::make('paid_at')
                                     ->dateTime('j M Y H:i')
-                                    ->timezone(fn (): string => self::timezone()),
+                                    ->timezone(fn (): string => self::timezone())
+                                    ->placeholder(fn (Payment $record): string => ReservationResource::proofUploadedLabel($record)),
                                 TextEntry::make('amount')
                                     ->money(fn (Payment $record): string => $record->reservation->currency),
                                 TextEntry::make('method')

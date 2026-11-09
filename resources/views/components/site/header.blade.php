@@ -28,11 +28,6 @@
             </span>
             <span class="min-w-0">
                 <span class="block truncate font-serif text-xl leading-none">{{ $name }}</span>
-                @if ($profile?->address)
-                    <span class="mt-1 hidden truncate text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)] sm:block">
-                        {{ \Illuminate\Support\Str::limit($profile->address, 48) }}
-                    </span>
-                @endif
             </span>
         </a>
 

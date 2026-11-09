@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Actions\Pricing\SetBasePrice;
 use App\Enums\PaymentMethod;
+use App\Enums\PaymentStatus;
 use App\Enums\ReservationPaymentStatus;
 use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
@@ -251,6 +252,76 @@ class ReservationResourceTest extends TestCase
         $this->assertSame('2026-12-01 00:00:00', $payment->paid_at?->toDateTimeString());
         $this->assertStringStartsWith(Payment::PROOF_DIRECTORY.'/', (string) $payment->proof_url);
         Storage::disk(Payment::PROOF_DISK)->assertExists((string) $payment->proof_url);
+    }
+
+    public function test_a_waiting_proof_is_flagged_with_when_it_was_uploaded(): void
+    {
+        $reservation = $this->reservation(ReservationStatus::AwaitingPayment);
+        Payment::factory()->for($reservation)->create(['proof_url' => 'payment-proofs/guest.jpg']);
+
+        $this->get(ReservationResource::getUrl('view', ['record' => $reservation]))
+            ->assertOk()
+            ->assertSee('Transfer proof to verify')
+            ->assertSee('Awaiting verification')
+            ->assertSee('Uploaded 1 Dec 2026 08:00:00');
+    }
+
+    public function test_record_payment_settles_the_newest_waiting_proof_by_default(): void
+    {
+        $reservation = $this->reservation(ReservationStatus::AwaitingPayment);
+        $older = Payment::factory()->for($reservation)->create(['created_at' => '2026-11-30 10:00:00', 'proof_url' => 'payment-proofs/older.jpg']);
+        $newest = Payment::factory()->for($reservation)->create(['created_at' => '2026-11-30 12:00:00', 'proof_url' => 'payment-proofs/newest.jpg']);
+
+        $this->page($reservation)
+            ->callAction('recordPayment', ['amount' => '4500000', 'method' => PaymentMethod::BankTransfer->value])
+            ->assertHasNoFormErrors()
+            ->assertNotified('Payment recorded, reservation confirmed');
+
+        $this->assertSame(ReservationStatus::Confirmed, $reservation->refresh()->status);
+        $this->assertSame(PaymentStatus::Paid, $newest->refresh()->status);
+        $this->assertSame($this->admin->id, $newest->verified_by);
+        $this->assertSame('payment-proofs/newest.jpg', $newest->proof_url);
+        $this->assertSame(PaymentStatus::Expired, $older->refresh()->status);
+        $this->assertSame(2, $reservation->payments()->count());
+    }
+
+    public function test_record_payment_can_be_kept_apart_from_a_waiting_proof(): void
+    {
+        $reservation = $this->reservation(ReservationStatus::AwaitingPayment);
+        $proof = Payment::factory()->for($reservation)->create();
+
+        $this->page($reservation)
+            ->callAction('recordPayment', ['guest_proof' => null, 'amount' => '1000000', 'method' => PaymentMethod::Cash->value])
+            ->assertHasNoFormErrors();
+
+        $this->assertSame(PaymentStatus::Pending, $proof->refresh()->status);
+        $this->assertSame(2, $reservation->payments()->count());
+    }
+
+    public function test_reject_proof_is_offered_only_while_a_proof_is_waiting(): void
+    {
+        $reservation = $this->reservation(ReservationStatus::AwaitingPayment);
+
+        $this->page($reservation)->assertActionHidden('rejectProof');
+
+        Payment::factory()->for($reservation)->create();
+
+        $this->page($reservation)->assertActionVisible('rejectProof');
+    }
+
+    public function test_reject_proof_marks_the_chosen_proof_rejected(): void
+    {
+        $reservation = $this->reservation(ReservationStatus::AwaitingPayment);
+        $proof = Payment::factory()->for($reservation)->create();
+
+        $this->page($reservation)
+            ->callAction('rejectProof')
+            ->assertHasNoFormErrors()
+            ->assertNotified('Transfer proof rejected');
+
+        $this->assertSame(PaymentStatus::Failed, $proof->refresh()->status);
+        $this->assertSame($this->admin->id, $proof->verified_by);
+        $this->assertSame(ReservationStatus::AwaitingPayment, $reservation->refresh()->status);
     }
 
     public function test_payment_received_later_than_now_is_refused(): void

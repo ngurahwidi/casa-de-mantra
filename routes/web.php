@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Site\AboutController;
 use App\Http\Controllers\Site\BookingController;
+use App\Http\Controllers\Site\BookingStatusController;
 use App\Http\Controllers\Site\ContactController;
 use App\Http\Controllers\Site\FaqController;
 use App\Http\Controllers\Site\GalleryController;
@@ -23,6 +24,15 @@ Route::post('/villa/{villa:slug}/book', [BookingController::class, 'store'])
     ->middleware('throttle:booking')
     ->name('booking.store');
 Route::get('/booking/success/{code}', [BookingController::class, 'success'])->name('booking.success');
+
+Route::get('/booking/status', [BookingStatusController::class, 'index'])->name('booking.status');
+Route::post('/booking/status', [BookingStatusController::class, 'lookup'])
+    ->middleware('throttle:booking-status')
+    ->name('booking.status.lookup');
+Route::post('/booking/status/proof', [BookingStatusController::class, 'uploadProof'])
+    ->middleware('throttle:booking-proof')
+    ->name('booking.status.proof');
+Route::post('/booking/status/forget', [BookingStatusController::class, 'forget'])->name('booking.status.forget');
 
 Route::get('/gallery', GalleryController::class)->name('gallery');
 Route::get('/location', LocationController::class)->name('location');

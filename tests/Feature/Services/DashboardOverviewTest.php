@@ -2,10 +2,12 @@
 
 namespace Tests\Feature\Services;
 
+use App\Enums\PaymentStatus;
 use App\Enums\ReservationPaymentStatus;
 use App\Enums\ReservationStatus;
 use App\Enums\UnitStatus;
 use App\Models\IcalFeed;
+use App\Models\Payment;
 use App\Models\PropertyProfile;
 use App\Models\Reservation;
 use App\Models\ReservationRoom;
@@ -64,6 +66,26 @@ class DashboardOverviewTest extends TestCase
         $due = app(DashboardOverview::class)->paymentsDue()->pluck('id')->all();
 
         $this->assertSame([$overdue->id, $inTwelveHours->id], $due);
+    }
+
+    public function test_payments_due_leave_out_reservations_with_a_proof_waiting(): void
+    {
+        $withProof = Reservation::factory()->awaitingPayment()->create(['expires_at' => '2026-11-30 18:00:00']);
+        Payment::factory()->for($withProof)->create();
+
+        $this->assertSame(0, app(DashboardOverview::class)->paymentsDue()->count());
+    }
+
+    public function test_proofs_to_verify_are_reservations_with_a_proof_still_pending(): void
+    {
+        $waiting = Reservation::factory()->awaitingPayment()->create();
+        Payment::factory()->for($waiting)->create();
+        $rejected = Reservation::factory()->awaitingPayment()->create();
+        Payment::factory()->for($rejected)->create(['status' => PaymentStatus::Failed]);
+        $paid = Reservation::factory()->confirmed()->create();
+        Payment::factory()->paid()->for($paid)->create();
+
+        $this->assertSame([$waiting->id], app(DashboardOverview::class)->proofsToVerify()->pluck('id')->all());
     }
 
     public function test_todays_stays_follow_the_property_timezone_and_list_check_outs_first(): void

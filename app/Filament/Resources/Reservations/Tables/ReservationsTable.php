@@ -23,7 +23,9 @@ class ReservationsTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['reservationRooms.roomType', 'reservationRooms.unit']))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query
+                ->with(['reservationRooms.roomType', 'reservationRooms.unit'])
+                ->withExists('pendingPaymentProofs'))
             ->defaultSort('created_at', 'desc')
             ->columns([
                 TextColumn::make('code')
@@ -58,7 +60,8 @@ class ReservationsTable
                     ->label('Payment')
                     ->badge()
                     ->formatStateUsing(fn (ReservationPaymentStatus $state): string => $state->label())
-                    ->color(fn (ReservationPaymentStatus $state): string => ReservationResource::paymentStatusColor($state)),
+                    ->color(fn (ReservationPaymentStatus $state): string => ReservationResource::paymentStatusColor($state))
+                    ->description(fn (Reservation $record): ?string => $record->getAttribute('pending_payment_proofs_exists') ? 'Proof to verify' : null),
                 TextColumn::make('source')
                     ->formatStateUsing(fn (ReservationSource $state): string => $state->label())
                     ->toggleable(),
@@ -84,6 +87,10 @@ class ReservationsTable
                 TernaryFilter::make('ota_blocked_at')
                     ->label('Blocked on OTA')
                     ->nullable(),
+                Filter::make('proof_to_verify')
+                    ->label('Transfer proof to verify')
+                    ->toggle()
+                    ->query(fn (Builder $query): Builder => $query->whereHas('pendingPaymentProofs')),
                 Filter::make('stay')
                     ->schema([
                         DatePicker::make('from')

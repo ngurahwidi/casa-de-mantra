@@ -7,6 +7,7 @@ use App\Filament\Widgets\PaymentsDueWidget;
 use App\Filament\Widgets\ReservationStatsOverview;
 use App\Filament\Widgets\TodaysStaysWidget;
 use App\Models\IcalFeed;
+use App\Models\Payment;
 use App\Models\PropertyProfile;
 use App\Models\Reservation;
 use App\Models\RoomType;
@@ -90,6 +91,23 @@ class DashboardTest extends TestCase
             ->test(ListReservations::class)
             ->assertCanSeeTableRecords([$toBlock])
             ->assertCanNotSeeTableRecords([$blocked, $ended, $pending]);
+    }
+
+    public function test_stats_count_the_transfer_proofs_to_verify_and_link_to_them(): void
+    {
+        $withProof = Reservation::factory()->awaitingPayment()->create();
+        Payment::factory()->for($withProof)->create();
+        $withoutProof = Reservation::factory()->awaitingPayment()->create();
+
+        Livewire::test(ReservationStatsOverview::class)
+            ->assertSee('Transfer proofs to verify')
+            ->assertSeeHtml('filters%5Bproof_to_verify%5D%5BisActive%5D=1');
+
+        Livewire::withQueryParams(['filters' => ['proof_to_verify' => ['isActive' => true]]])
+            ->test(ListReservations::class)
+            ->assertCanSeeTableRecords([$withProof])
+            ->assertCanNotSeeTableRecords([$withoutProof])
+            ->assertSee('Proof to verify');
     }
 
     public function test_todays_stays_widget_lists_check_ins_and_check_outs_of_today(): void

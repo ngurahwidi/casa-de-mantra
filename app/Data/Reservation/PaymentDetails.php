@@ -15,6 +15,7 @@ final readonly class PaymentDetails
      * @param  CarbonInterface|null  $paidAt  when the money was received, not later than now; now when omitted
      * @param  string|null  $reference  the transfer reference from the bank, if any
      * @param  string|null  $proofPath  path of the transfer proof on the private disk
+     * @param  string|null  $guestProofId  the pending payment holding the guest's proof of this transfer, which becomes this payment
      */
     public function __construct(
         public string $amount,
@@ -22,5 +23,6 @@ final readonly class PaymentDetails
         public ?CarbonInterface $paidAt = null,
         public ?string $reference = null,
         public ?string $proofPath = null,
+        public ?string $guestProofId = null,
     ) {}
 }

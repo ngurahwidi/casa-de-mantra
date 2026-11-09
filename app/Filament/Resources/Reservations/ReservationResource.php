@@ -8,6 +8,8 @@ use App\Filament\Resources\Reservations\Pages\ListReservations;
 use App\Filament\Resources\Reservations\Pages\ViewReservation;
 use App\Filament\Resources\Reservations\Schemas\ReservationInfolist;
 use App\Filament\Resources\Reservations\Tables\ReservationsTable;
+use App\Models\Payment;
+use App\Models\PropertyProfile;
 use App\Models\Reservation;
 use BackedEnum;
 use Carbon\CarbonImmutable;
@@ -100,5 +102,14 @@ class ReservationResource extends Resource
 
         return $checkIn->format('j M Y').' – '.$checkOut->format('j M Y')
             .' ('.trans_choice(':count night|:count nights', (int) $checkIn->diffInDays($checkOut)).')';
+    }
+
+    /**
+     * When the guest uploaded a proof as "Uploaded 1 Dec 2026 08:00:15" in the property timezone.
+     * Seconds tell apart proofs sent one after the other.
+     */
+    public static function proofUploadedLabel(Payment $proof): string
+    {
+        return 'Uploaded '.$proof->created_at?->timezone(PropertyProfile::current()->timezone)->format('j M Y H:i:s');
     }
 }

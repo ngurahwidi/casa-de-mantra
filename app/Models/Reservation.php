@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PaymentStatus;
 use App\Enums\ReservationPaymentStatus;
 use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
@@ -102,6 +103,16 @@ class Reservation extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * Transfer proofs uploaded by the guest that no admin has dealt with yet.
+     *
+     * @return HasMany<Payment, $this>
+     */
+    public function pendingPaymentProofs(): HasMany
+    {
+        return $this->payments()->where('status', PaymentStatus::Pending);
     }
 
     /**

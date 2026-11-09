@@ -51,5 +51,23 @@ class AppServiceProvider extends ServiceProvider
                     429,
                 ));
         });
+
+        RateLimiter::for('booking-status', function (Request $request): Limit {
+            return Limit::perMinute(5)
+                ->by($request->ip())
+                ->response(fn () => response(
+                    'Too many status checks from this address. Please wait a minute and try again.',
+                    429,
+                ));
+        });
+
+        RateLimiter::for('booking-proof', function (Request $request): Limit {
+            return Limit::perMinute(5)
+                ->by($request->ip())
+                ->response(fn () => response(
+                    'Too many uploads from this address. Please wait a minute and try again.',
+                    429,
+                ));
+        });
     }
 }

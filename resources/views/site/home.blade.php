@@ -40,23 +40,6 @@
         </div>
     </section>
 
-    <section class="border-b border-[var(--color-line)] bg-[var(--color-paper-deep)]">
-        <div class="site-container grid gap-4 py-5 text-xs text-[var(--color-muted)] sm:grid-cols-3 sm:gap-8">
-            <p class="flex items-center gap-2">
-                <span class="h-1.5 w-1.5 rounded-full bg-[var(--color-primary)]"></span>
-                Check-in from {{ \Carbon\Carbon::parse($profile?->checkin_time ?? '14:00')->format('H:i') }}
-            </p>
-            <p class="flex items-center gap-2">
-                <span class="h-1.5 w-1.5 rounded-full bg-[var(--color-primary)]"></span>
-                Check-out by {{ \Carbon\Carbon::parse($profile?->checkout_time ?? '12:00')->format('H:i') }}
-            </p>
-            <p class="flex items-center gap-2">
-                <span class="h-1.5 w-1.5 rounded-full bg-[var(--color-primary)]"></span>
-                Best rate when you book direct
-            </p>
-        </div>
-    </section>
-
     <section id="villas" class="scroll-mt-24 py-16 sm:py-24">
         <div class="site-container">
             <div class="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
