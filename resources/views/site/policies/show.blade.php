@@ -5,16 +5,16 @@
         <div class="site-container py-14 sm:py-20">
             <nav class="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]" aria-label="Breadcrumb">
                 <a href="{{ route('home') }}" class="transition hover:text-[var(--color-primary)]">Home</a>
-                <span class="mx-2 text-[var(--color-line)]">/</span>
+                <span class="mx-2 text-[var(--color-line)]" aria-hidden="true">/</span>
                 <a href="{{ route('policies.index') }}" class="transition hover:text-[var(--color-primary)]">Policies</a>
-                <span class="mx-2 text-[var(--color-line)]">/</span>
-                <span class="text-[var(--color-primary)]">{{ $page->title }}</span>
+                <span class="mx-2 text-[var(--color-line)]" aria-hidden="true">/</span>
+                <span class="text-[var(--color-primary)]" aria-current="page">{{ $page->title }}</span>
             </nav>
 
             <div class="mt-8 max-w-2xl">
                 <p class="eyebrow">Policy</p>
                 <h1 class="mt-4 text-balance font-serif text-4xl leading-[1.02] sm:text-5xl">{{ $page->title }}</h1>
-                <p class="mt-4 text-xs text-[var(--color-muted)]">Last updated {{ $page->updated_at?->format('j M Y') }}</p>
+                <p class="mt-4 text-xs text-[var(--color-muted)]">Last updated {{ $page->updated_at?->copy()->timezone($profile?->timezone ?? 'UTC')->format('j M Y') }}</p>
             </div>
         </div>
     </section>

@@ -1,19 +1,20 @@
 @props([
-    'src' => null,
+    'media' => null,
     'alt' => '',
+    'sizes' => '100vw',
     'priority' => false,
     'ratio' => 'aspect-[4/3]',
 ])
 
 <figure {{ $attributes->merge(['class' => 'relative overflow-hidden bg-[#DDE3D2] '.$ratio]) }}>
-    @if ($src)
-        <img
-            src="{{ $src }}"
-            alt="{{ $alt }}"
-            @if ($priority) loading="eager" fetchpriority="high" @else loading="lazy" @endif
-            decoding="async"
+    @if ($media)
+        <x-site.picture
+            :media="$media"
+            :alt="$alt"
+            :sizes="$sizes"
+            :priority="$priority"
             class="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.03]"
-        >
+        />
     @else
         <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#DCE3D1] via-[#EAE5D8] to-[#BFC9AE]">
             <svg class="h-16 w-16 text-[#6E7C5E]/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true">

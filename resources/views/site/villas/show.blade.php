@@ -12,10 +12,10 @@
         <div class="site-container py-8 sm:py-10">
             <nav class="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]" aria-label="Breadcrumb">
                 <a href="{{ route('home') }}" class="transition hover:text-[var(--color-primary)]">Home</a>
-                <span class="mx-2 text-[var(--color-line)]">/</span>
+                <span class="mx-2 text-[var(--color-line)]" aria-hidden="true">/</span>
                 <a href="{{ route('villas.index') }}" class="transition hover:text-[var(--color-primary)]">Villas</a>
-                <span class="mx-2 text-[var(--color-line)]">/</span>
-                <span class="text-[var(--color-primary)]">{{ $villa->name }}</span>
+                <span class="mx-2 text-[var(--color-line)]" aria-hidden="true">/</span>
+                <span class="text-[var(--color-primary)]" aria-current="page">{{ $villa->name }}</span>
             </nav>
 
             <div class="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -42,8 +42,9 @@
         <div class="site-container">
             <div class="grid gap-3 lg:grid-cols-[1.55fr_1fr]">
                 <x-site.photo
-                    :src="$hero?->getUrl()"
+                    :media="$hero"
                     :alt="$hero?->getCustomProperty('alt') ?: $villa->name"
+                    sizes="(min-width: 1024px) 660px, 100vw"
                     ratio="aspect-[4/3] sm:aspect-[16/10] lg:aspect-[4/3]"
                     priority
                     class="rounded-2xl"
@@ -52,8 +53,9 @@
                 <div class="grid grid-cols-2 gap-3">
                     @foreach ($photos->skip(1)->take(2) as $photo)
                         <x-site.photo
-                            :src="$photo->getUrl()"
+                            :media="$photo"
                             :alt="$photo->getCustomProperty('alt') ?: $villa->name"
+                            sizes="(min-width: 1024px) 210px, 50vw"
                             ratio="aspect-square"
                             class="rounded-2xl"
                         />
@@ -177,7 +179,7 @@
 
                 <div class="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     @foreach ($others as $other)
-                        <x-site.villa-card :villa="$other" :price="$otherPrices[$other->id] ?? null" />
+                        <x-site.villa-card :villa="$other" :profile="$profile" :price="$otherPrices[$other->id] ?? null" />
                     @endforeach
                 </div>
             </div>

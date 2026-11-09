@@ -7,8 +7,8 @@
         <div class="site-container py-14 sm:py-20">
             <nav class="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]" aria-label="Breadcrumb">
                 <a href="{{ route('home') }}" class="transition hover:text-[var(--color-primary)]">Home</a>
-                <span class="mx-2 text-[var(--color-line)]">/</span>
-                <span class="text-[var(--color-primary)]">About</span>
+                <span class="mx-2 text-[var(--color-line)]" aria-hidden="true">/</span>
+                <span class="text-[var(--color-primary)]" aria-current="page">About</span>
             </nav>
 
             <div class="mt-8 max-w-3xl">
@@ -37,8 +37,9 @@
 
             <div class="grid gap-3">
                 <x-site.photo
-                    :src="$featurePhoto?->getUrl()"
+                    :media="$featurePhoto"
                     :alt="$featurePhoto?->getCustomProperty('alt') ?: ($profile?->name ?? 'Villa')"
+                    sizes="(min-width: 1024px) 520px, 100vw"
                     ratio="aspect-[4/3]"
                     class="rounded-2xl"
                 />
@@ -46,8 +47,9 @@
                     @foreach ($villas->take(2) as $villa)
                         @if ($villa->getFirstMedia(\App\Models\RoomType::GALLERY))
                             <x-site.photo
-                                :src="$villa->getFirstMediaUrl(\App\Models\RoomType::GALLERY)"
+                                :media="$villa->getFirstMedia(\App\Models\RoomType::GALLERY)"
                                 :alt="$villa->getFirstMedia(\App\Models\RoomType::GALLERY)?->getCustomProperty('alt') ?: $villa->name"
+                                sizes="(min-width: 1024px) 255px, 50vw"
                                 ratio="aspect-square"
                                 class="rounded-2xl"
                             />

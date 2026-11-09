@@ -108,7 +108,7 @@
     <div class="grid grid-cols-2 gap-3">
         <label class="block">
             <span class="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">Adults</span>
-            <select wire:model.live="adults" class="mt-2 w-full rounded-xl border border-[var(--color-line)] bg-transparent px-3 py-2.5 text-sm focus:border-[var(--color-primary)] focus:outline-none">
+            <select wire:model.live="adults" class="mt-2 w-full rounded-xl border border-[var(--color-line)] bg-transparent px-3 py-2.5 text-base sm:text-sm focus:border-[var(--color-primary)] focus:outline-none">
                 @for ($count = 1; $count <= $villa->max_adults; $count++)
                     <option value="{{ $count }}">{{ $count }}</option>
                 @endfor
@@ -116,7 +116,7 @@
         </label>
         <label class="block">
             <span class="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">Children</span>
-            <select wire:model.live="children" @disabled($villa->max_children === 0) class="mt-2 w-full rounded-xl border border-[var(--color-line)] bg-transparent px-3 py-2.5 text-sm focus:border-[var(--color-primary)] focus:outline-none disabled:opacity-50">
+            <select wire:model.live="children" @disabled($villa->max_children === 0) class="mt-2 w-full rounded-xl border border-[var(--color-line)] bg-transparent px-3 py-2.5 text-base sm:text-sm focus:border-[var(--color-primary)] focus:outline-none disabled:opacity-50">
                 @for ($count = 0; $count <= $villa->max_children; $count++)
                     <option value="{{ $count }}">{{ $count }}</option>
                 @endfor

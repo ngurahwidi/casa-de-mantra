@@ -11,12 +11,12 @@
         <div class="site-container py-8 sm:py-10">
             <nav class="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]" aria-label="Breadcrumb">
                 <a href="{{ route('home') }}" class="transition hover:text-[var(--color-primary)]">Home</a>
-                <span class="mx-2 text-[var(--color-line)]">/</span>
+                <span class="mx-2 text-[var(--color-line)]" aria-hidden="true">/</span>
                 <a href="{{ route('villas.index') }}" class="transition hover:text-[var(--color-primary)]">Villas</a>
-                <span class="mx-2 text-[var(--color-line)]">/</span>
+                <span class="mx-2 text-[var(--color-line)]" aria-hidden="true">/</span>
                 <a href="{{ route('villas.show', $villa->slug) }}" class="transition hover:text-[var(--color-primary)]">{{ $villa->name }}</a>
-                <span class="mx-2 text-[var(--color-line)]">/</span>
-                <span class="text-[var(--color-primary)]">Request to book</span>
+                <span class="mx-2 text-[var(--color-line)]" aria-hidden="true">/</span>
+                <span class="text-[var(--color-primary)]" aria-current="page">Request to book</span>
             </nav>
 
             <div class="mt-6 max-w-2xl">
@@ -151,19 +151,20 @@
                                     <input
                                         id="full_name"
                                         name="full_name"
+                                        @error('full_name') aria-invalid="true" aria-describedby="full_name-error" @enderror
                                         type="text"
                                         value="{{ old('full_name') }}"
                                         autocomplete="name"
                                         required
                                         @class([
-                                            'mt-2 w-full rounded-xl border bg-[#FCFAF4] px-4 py-3 text-sm outline-none transition placeholder:text-[var(--color-muted)]/60 focus:border-[var(--color-primary)]',
+                                            'mt-2 w-full rounded-xl border bg-[#FCFAF4] px-4 py-3 text-base sm:text-sm outline-none transition placeholder:text-[var(--color-muted)] focus:border-[var(--color-primary)]',
                                             'border-[#C98B82]' => $errors->has('full_name'),
                                             'border-[var(--color-line)]' => ! $errors->has('full_name'),
                                         ])
                                         placeholder="Your full name"
                                     >
                                     @error('full_name')
-                                        <p class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
+                                        <p id="full_name-error" class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
                                     @enderror
                                 </div>
 
@@ -172,19 +173,20 @@
                                     <input
                                         id="email"
                                         name="email"
+                                        @error('email') aria-invalid="true" aria-describedby="email-error" @enderror
                                         type="email"
                                         value="{{ old('email') }}"
                                         autocomplete="email"
                                         required
                                         @class([
-                                            'mt-2 w-full rounded-xl border bg-[#FCFAF4] px-4 py-3 text-sm outline-none transition placeholder:text-[var(--color-muted)]/60 focus:border-[var(--color-primary)]',
+                                            'mt-2 w-full rounded-xl border bg-[#FCFAF4] px-4 py-3 text-base sm:text-sm outline-none transition placeholder:text-[var(--color-muted)] focus:border-[var(--color-primary)]',
                                             'border-[#C98B82]' => $errors->has('email'),
                                             'border-[var(--color-line)]' => ! $errors->has('email'),
                                         ])
                                         placeholder="you@example.com"
                                     >
                                     @error('email')
-                                        <p class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
+                                        <p id="email-error" class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
                                     @enderror
                                 </div>
                             </div>
@@ -195,58 +197,61 @@
                                     <input
                                         id="phone"
                                         name="phone"
+                                        @error('phone') aria-invalid="true" aria-describedby="phone-error" @enderror
                                         type="text"
                                         value="{{ old('phone') }}"
                                         autocomplete="tel"
                                         required
                                         @class([
-                                            'mt-2 w-full rounded-xl border bg-[#FCFAF4] px-4 py-3 text-sm outline-none transition placeholder:text-[var(--color-muted)]/60 focus:border-[var(--color-primary)]',
+                                            'mt-2 w-full rounded-xl border bg-[#FCFAF4] px-4 py-3 text-base sm:text-sm outline-none transition placeholder:text-[var(--color-muted)] focus:border-[var(--color-primary)]',
                                             'border-[#C98B82]' => $errors->has('phone'),
                                             'border-[var(--color-line)]' => ! $errors->has('phone'),
                                         ])
                                         placeholder="+62 ..."
                                     >
                                     @error('phone')
-                                        <p class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
+                                        <p id="phone-error" class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
                                     @enderror
                                 </div>
 
                                 <div>
-                                    <label for="country" class="block text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">Country <span class="normal-case tracking-normal text-[var(--color-muted)]/70">(optional)</span></label>
+                                    <label for="country" class="block text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">Country <span class="normal-case tracking-normal text-[var(--color-muted)]">(optional)</span></label>
                                     <input
                                         id="country"
                                         name="country"
+                                        @error('country') aria-invalid="true" aria-describedby="country-error" @enderror
                                         type="text"
                                         value="{{ old('country') }}"
                                         autocomplete="country-name"
                                         @class([
-                                            'mt-2 w-full rounded-xl border bg-[#FCFAF4] px-4 py-3 text-sm outline-none transition placeholder:text-[var(--color-muted)]/60 focus:border-[var(--color-primary)]',
+                                            'mt-2 w-full rounded-xl border bg-[#FCFAF4] px-4 py-3 text-base sm:text-sm outline-none transition placeholder:text-[var(--color-muted)] focus:border-[var(--color-primary)]',
                                             'border-[#C98B82]' => $errors->has('country'),
                                             'border-[var(--color-line)]' => ! $errors->has('country'),
                                         ])
                                         placeholder="Where are you travelling from?"
                                     >
                                     @error('country')
-                                        <p class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
+                                        <p id="country-error" class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
                                     @enderror
                                 </div>
                             </div>
 
                             <div class="mt-5">
-                                <label for="special_requests" class="block text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">Special requests <span class="normal-case tracking-normal text-[var(--color-muted)]/70">(optional)</span></label>
+                                <label for="special_requests" class="block text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">Special requests <span class="normal-case tracking-normal text-[var(--color-muted)]">(optional)</span></label>
                                 <textarea
                                     id="special_requests"
                                     name="special_requests"
+                                    @error('special_requests') aria-invalid="true" aria-describedby="special_requests-error" @enderror
                                     rows="4"
                                     @class([
-                                        'mt-2 w-full resize-y rounded-xl border bg-[#FCFAF4] px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-[var(--color-muted)]/60 focus:border-[var(--color-primary)]',
+                                        'mt-2 w-full resize-y rounded-xl border bg-[#FCFAF4] px-4 py-3 text-base sm:text-sm leading-6 outline-none transition placeholder:text-[var(--color-muted)] focus:border-[var(--color-primary)]',
                                         'border-[#C98B82]' => $errors->has('special_requests'),
                                         'border-[var(--color-line)]' => ! $errors->has('special_requests'),
                                     ])
                                     placeholder="Arrival time, dietary needs, or anything else we should know..."
                                 >{{ old('special_requests') }}</textarea>
                                 @error('special_requests')
-                                    <p class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
+                                    <p id="special_requests-error" class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
                                 @enderror
                             </div>
                         </fieldset>
@@ -258,6 +263,7 @@
                                 <input
                                     id="policy_accepted"
                                     name="policy_accepted"
+                                    @error('policy_accepted') aria-invalid="true" aria-describedby="policy_accepted-error" @enderror
                                     type="checkbox"
                                     value="1"
                                     @checked(old('policy_accepted'))
@@ -272,7 +278,7 @@
                                 </span>
                             </label>
                             @error('policy_accepted')
-                                <p class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
+                                <p id="policy_accepted-error" class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
                             @enderror
 
                             @if (config('services.turnstile.site_key'))

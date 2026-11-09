@@ -5,8 +5,8 @@
         <div class="site-container py-14 sm:py-20">
             <nav class="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]" aria-label="Breadcrumb">
                 <a href="{{ route('home') }}" class="transition hover:text-[var(--color-primary)]">Home</a>
-                <span class="mx-2 text-[var(--color-line)]">/</span>
-                <span class="text-[var(--color-primary)]">Policies</span>
+                <span class="mx-2 text-[var(--color-line)]" aria-hidden="true">/</span>
+                <span class="text-[var(--color-primary)]" aria-current="page">Policies</span>
             </nav>
 
             <div class="mt-8 max-w-2xl">

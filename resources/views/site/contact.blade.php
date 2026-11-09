@@ -5,12 +5,13 @@
         <div class="site-container py-14 sm:py-20">
             <nav class="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]" aria-label="Breadcrumb">
                 <a href="{{ route('home') }}" class="transition hover:text-[var(--color-primary)]">Home</a>
-                <span class="mx-2 text-[var(--color-line)]">/</span>
-                <span class="text-[var(--color-primary)]">Contact</span>
+                <span class="mx-2 text-[var(--color-line)]" aria-hidden="true">/</span>
+                <span class="text-[var(--color-primary)]" aria-current="page">Contact</span>
             </nav>
 
             <div class="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
                 <x-site.section-heading
+                    as="h1"
                     eyebrow="Say hello"
                     title="Tell us about your stay."
                     description="Share your dates, the size of your group, and anything you would like to know. We usually reply within one working day."
@@ -49,19 +50,20 @@
                             <input
                                 id="name"
                                 name="name"
+                                @error('name') aria-invalid="true" aria-describedby="name-error" @enderror
                                 type="text"
                                 value="{{ old('name') }}"
                                 autocomplete="name"
                                 required
                                 @class([
-                                    'mt-2 w-full rounded-xl border bg-[#FCFAF4] px-4 py-3 text-sm outline-none transition placeholder:text-[var(--color-muted)]/60 focus:border-[var(--color-primary)]',
+                                    'mt-2 w-full rounded-xl border bg-[#FCFAF4] px-4 py-3 text-base sm:text-sm outline-none transition placeholder:text-[var(--color-muted)] focus:border-[var(--color-primary)]',
                                     'border-[#C98B82]' => $errors->has('name'),
                                     'border-[var(--color-line)]' => ! $errors->has('name'),
                                 ])
                                 placeholder="Your full name"
                             >
                             @error('name')
-                                <p class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
+                                <p id="name-error" class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
                             @enderror
                         </div>
 
@@ -70,60 +72,63 @@
                             <input
                                 id="email"
                                 name="email"
+                                @error('email') aria-invalid="true" aria-describedby="email-error" @enderror
                                 type="email"
                                 value="{{ old('email') }}"
                                 autocomplete="email"
                                 required
                                 @class([
-                                    'mt-2 w-full rounded-xl border bg-[#FCFAF4] px-4 py-3 text-sm outline-none transition placeholder:text-[var(--color-muted)]/60 focus:border-[var(--color-primary)]',
+                                    'mt-2 w-full rounded-xl border bg-[#FCFAF4] px-4 py-3 text-base sm:text-sm outline-none transition placeholder:text-[var(--color-muted)] focus:border-[var(--color-primary)]',
                                     'border-[#C98B82]' => $errors->has('email'),
                                     'border-[var(--color-line)]' => ! $errors->has('email'),
                                 ])
                                 placeholder="you@example.com"
                             >
                             @error('email')
-                                <p class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
+                                <p id="email-error" class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
                             @enderror
                         </div>
                     </div>
 
                     <div class="grid gap-5 sm:grid-cols-2">
                         <div>
-                            <label for="phone" class="block text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">Phone or WhatsApp <span class="normal-case tracking-normal text-[var(--color-muted)]/70">(optional)</span></label>
+                            <label for="phone" class="block text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">Phone or WhatsApp <span class="normal-case tracking-normal text-[var(--color-muted)]">(optional)</span></label>
                             <input
                                 id="phone"
                                 name="phone"
+                                @error('phone') aria-invalid="true" aria-describedby="phone-error" @enderror
                                 type="text"
                                 value="{{ old('phone') }}"
                                 autocomplete="tel"
                                 @class([
-                                    'mt-2 w-full rounded-xl border bg-[#FCFAF4] px-4 py-3 text-sm outline-none transition placeholder:text-[var(--color-muted)]/60 focus:border-[var(--color-primary)]',
+                                    'mt-2 w-full rounded-xl border bg-[#FCFAF4] px-4 py-3 text-base sm:text-sm outline-none transition placeholder:text-[var(--color-muted)] focus:border-[var(--color-primary)]',
                                     'border-[#C98B82]' => $errors->has('phone'),
                                     'border-[var(--color-line)]' => ! $errors->has('phone'),
                                 ])
                                 placeholder="+62 ..."
                             >
                             @error('phone')
-                                <p class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
+                                <p id="phone-error" class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
                             @enderror
                         </div>
 
                         <div>
-                            <label for="villa" class="block text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">Villa <span class="normal-case tracking-normal text-[var(--color-muted)]/70">(optional)</span></label>
+                            <label for="villa" class="block text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">Villa <span class="normal-case tracking-normal text-[var(--color-muted)]">(optional)</span></label>
                             <input
                                 id="villa"
                                 name="villa"
+                                @error('villa') aria-invalid="true" aria-describedby="villa-error" @enderror
                                 type="text"
                                 value="{{ old('villa', request('villa')) }}"
                                 @class([
-                                    'mt-2 w-full rounded-xl border bg-[#FCFAF4] px-4 py-3 text-sm outline-none transition placeholder:text-[var(--color-muted)]/60 focus:border-[var(--color-primary)]',
+                                    'mt-2 w-full rounded-xl border bg-[#FCFAF4] px-4 py-3 text-base sm:text-sm outline-none transition placeholder:text-[var(--color-muted)] focus:border-[var(--color-primary)]',
                                     'border-[#C98B82]' => $errors->has('villa'),
                                     'border-[var(--color-line)]' => ! $errors->has('villa'),
                                 ])
                                 placeholder="Which villa are you interested in?"
                             >
                             @error('villa')
-                                <p class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
+                                <p id="villa-error" class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
                             @enderror
                         </div>
                     </div>
@@ -133,17 +138,18 @@
                         <textarea
                             id="message"
                             name="message"
+                            @error('message') aria-invalid="true" aria-describedby="message-error" @enderror
                             rows="6"
                             required
                             @class([
-                                'mt-2 w-full resize-y rounded-xl border bg-[#FCFAF4] px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-[var(--color-muted)]/60 focus:border-[var(--color-primary)]',
+                                'mt-2 w-full resize-y rounded-xl border bg-[#FCFAF4] px-4 py-3 text-base sm:text-sm leading-6 outline-none transition placeholder:text-[var(--color-muted)] focus:border-[var(--color-primary)]',
                                 'border-[#C98B82]' => $errors->has('message'),
                                 'border-[var(--color-line)]' => ! $errors->has('message'),
                             ])
                             placeholder="Dates, number of guests, and anything else we should know..."
                         >{{ old('message') }}</textarea>
                         @error('message')
-                            <p class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
+                            <p id="message-error" class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
                         @enderror
                     </div>
 

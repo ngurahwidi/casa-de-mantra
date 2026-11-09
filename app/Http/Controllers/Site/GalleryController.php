@@ -16,7 +16,7 @@ class GalleryController extends Controller
                 'villa' => $villa,
                 'photos' => $villa->getMedia(RoomType::GALLERY)
                     ->map(fn ($media) => [
-                        'url' => $media->getUrl(),
+                        'media' => $media,
                         'alt' => $media->getCustomProperty('alt') ?: $villa->name,
                     ])
                     ->values(),

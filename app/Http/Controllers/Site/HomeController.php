@@ -49,7 +49,7 @@ class HomeController extends Controller
             'photos' => $villas
                 ->flatMap(fn (RoomType $villa) => $villa->getMedia(RoomType::GALLERY)
                     ->map(fn ($media) => [
-                        'url' => $media->getUrl(),
+                        'media' => $media,
                         'alt' => $media->getCustomProperty('alt') ?: $villa->name,
                         'villa' => $villa->name,
                     ]))

@@ -5,12 +5,13 @@
         <div class="site-container py-14 sm:py-20">
             <nav class="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]" aria-label="Breadcrumb">
                 <a href="{{ route('home') }}" class="transition hover:text-[var(--color-primary)]">Home</a>
-                <span class="mx-2 text-[var(--color-line)]">/</span>
-                <span class="text-[var(--color-primary)]">Location</span>
+                <span class="mx-2 text-[var(--color-line)]" aria-hidden="true">/</span>
+                <span class="text-[var(--color-primary)]" aria-current="page">Location</span>
             </nav>
 
             <div class="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
                 <x-site.section-heading
+                    as="h1"
                     eyebrow="Find us"
                     title="A quiet corner, close to it all."
                     description="Use the map for the exact location. We will send detailed arrival notes once your stay is confirmed."

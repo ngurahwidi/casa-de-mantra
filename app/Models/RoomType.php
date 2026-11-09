@@ -13,8 +13,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 #[Fillable([
     'name',
@@ -35,9 +37,53 @@ class RoomType extends Model implements HasMedia
 
     public const GALLERY = 'gallery';
 
+    /**
+     * Widths, in pixels, of the WebP renditions served to the public site.
+     *
+     * @var list<int>
+     */
+    public const PHOTO_WIDTHS = [480, 800, 1280, 1920];
+
+    private const PHOTO_QUALITY = 80;
+
+    /**
+     * Height limit for the renditions. It is never reached, so the width alone decides the size.
+     */
+    private const PHOTO_MAX_HEIGHT = 10000;
+
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection(self::GALLERY);
+    }
+
+    /**
+     * Originals smaller than a rendition keep their own size because Fit::Max never upscales.
+     */
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        foreach (self::PHOTO_WIDTHS as $width) {
+            $this->addMediaConversion(self::photoConversion($width))
+                ->performOnCollections(self::GALLERY)
+                ->fit(Fit::Max, $width, self::PHOTO_MAX_HEIGHT)
+                ->quality(self::PHOTO_QUALITY)
+                ->format('webp');
+        }
+    }
+
+    public static function photoConversion(int $width): string
+    {
+        return "webp-{$width}";
+    }
+
+    /**
+     * The srcset of the renditions generated so far, empty while they are still queued.
+     */
+    public static function photoSrcset(Media $media): string
+    {
+        return collect(self::PHOTO_WIDTHS)
+            ->filter(fn (int $width): bool => $media->hasGeneratedConversion(self::photoConversion($width)))
+            ->map(fn (int $width): string => $media->getUrl(self::photoConversion($width))." {$width}w")
+            ->implode(', ');
     }
 
     /**

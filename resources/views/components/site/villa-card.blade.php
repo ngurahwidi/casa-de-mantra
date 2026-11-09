@@ -1,4 +1,4 @@
-@props(['villa', 'price' => null, 'stay' => null, 'stayQuery' => null])
+@props(['villa', 'profile' => null, 'price' => null, 'stay' => null, 'stayQuery' => null])
 
 @php
     $photo = $villa->getFirstMedia(\App\Models\RoomType::GALLERY);
@@ -23,7 +23,7 @@
 
 <article class="group flex flex-col overflow-hidden rounded-2xl border border-[var(--color-line)] bg-[#FCFAF4] shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/5">
     <a href="{{ $url }}" class="relative block">
-        <x-site.photo :src="$photo?->getUrl()" :alt="$alt" ratio="aspect-[4/3]" />
+        <x-site.photo :media="$photo" :alt="$alt" ratio="aspect-[4/3]" sizes="(min-width: 1024px) 350px, (min-width: 768px) 50vw, 100vw" />
         @if ($stay !== null)
             <span @class([
                 'absolute right-4 top-4 rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] shadow-sm',

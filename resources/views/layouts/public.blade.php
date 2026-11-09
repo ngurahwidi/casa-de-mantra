@@ -9,10 +9,7 @@ $canonicalUrl = $canonical ?? url()->current();
 $shareImage = $ogImage ?? ($seoDefaults['image'] ?? null);
 $shareType = $ogType ?? 'website';
 
-$primary = data_get($profile, 'theme.primary');
-$accent = data_get($profile, 'theme.accent');
-$primary = is_string($primary) && preg_match('/^#[0-9a-fA-F]{3,8}$/', $primary) ? $primary : '#2F3B2B';
-$accent = is_string($accent) && preg_match('/^#[0-9a-fA-F]{3,8}$/', $accent) ? $accent : '#A7B59A';
+['primary' => $primary, 'accent' => $accent] = \App\Support\SiteTheme::colors($profile);
 
 $shareImage = $shareImage ? (str_starts_with($shareImage, 'http') ? $shareImage : url($shareImage)) : null;
 $jsonFlags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
@@ -22,7 +19,7 @@ if (isset($defaultSchema) && is_array($defaultSchema)) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="en" class="motion-safe:scroll-smooth">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -63,7 +60,7 @@ if (isset($defaultSchema) && is_array($defaultSchema)) {
                 --color-paper: #F6F2E9;
                 --color-paper-deep: #EFEADF;
                 --color-ink: #2B312A;
-                --color-muted: #6E7267;
+                --color-muted: #5E6257;
                 --color-line: #DED8CB;
             }
         </style>

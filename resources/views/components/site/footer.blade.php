@@ -59,7 +59,7 @@
             </div>
         </div>
 
-        <div class="flex flex-col gap-3 pt-8 text-[11px] uppercase tracking-[0.16em] text-white/50 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-col gap-3 pt-8 text-[11px] uppercase tracking-[0.16em] text-white/65 sm:flex-row sm:items-center sm:justify-between">
             <p>&copy; {{ $year }} {{ $name }}. All rights reserved.</p>
             <p>Direct booking — no platform fees.</p>
         </div>

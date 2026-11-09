@@ -39,7 +39,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         View::composer(
-            ['layouts.public', 'site.*', 'components.site.*'],
+            ['layouts.public', 'site.*'],
             SiteLayoutComposer::class,
         );
 

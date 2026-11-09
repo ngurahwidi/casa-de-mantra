@@ -4,7 +4,7 @@
     @php
         $timezone = $profile?->timezone ?? 'UTC';
         $formatDate = fn (string $date) => \Carbon\CarbonImmutable::parse($date)->format('j M Y');
-        $currency = $reservation?->currency ?? $profile?->currency ?? 'USD';
+        $currency = $reservation?->currency ?? $profile?->currency ?? '';
         $nights = $room?->nights->count() ?? 0;
         $deadline = $reservation?->expires_at?->copy()->timezone($timezone);
         $deadlinePassed = $deadline?->isPast() ?? false;
@@ -77,6 +77,7 @@
                             <input
                                 id="code"
                                 name="code"
+                                @error('code') aria-invalid="true" aria-describedby="code-error" @enderror
                                 type="text"
                                 value="{{ old('code', $lookupCode) }}"
                                 autocomplete="off"
@@ -85,14 +86,14 @@
                                 maxlength="32"
                                 required
                                 @class([
-                                    'mt-2 w-full rounded-xl border bg-[var(--color-paper)] px-4 py-3 font-mono text-sm uppercase tracking-[0.12em] outline-none transition placeholder:font-sans placeholder:normal-case placeholder:tracking-normal placeholder:text-[var(--color-muted)]/60 focus:border-[var(--color-primary)]',
+                                    'mt-2 w-full rounded-xl border bg-[var(--color-paper)] px-4 py-3 font-mono text-base sm:text-sm uppercase tracking-[0.12em] outline-none transition placeholder:font-sans placeholder:normal-case placeholder:tracking-normal placeholder:text-[var(--color-muted)] focus:border-[var(--color-primary)]',
                                     'border-[#C98B82]' => $errors->has('code'),
                                     'border-[var(--color-line)]' => ! $errors->has('code'),
                                 ])
                                 placeholder="RSV-XXXXXXXX"
                             >
                             @error('code')
-                                <p class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
+                                <p id="code-error" class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
                             @enderror
                         </div>
 
@@ -101,19 +102,20 @@
                             <input
                                 id="email"
                                 name="email"
+                                @error('email') aria-invalid="true" aria-describedby="email-error" @enderror
                                 type="email"
                                 value="{{ old('email') }}"
                                 autocomplete="email"
                                 required
                                 @class([
-                                    'mt-2 w-full rounded-xl border bg-[var(--color-paper)] px-4 py-3 text-sm outline-none transition placeholder:text-[var(--color-muted)]/60 focus:border-[var(--color-primary)]',
+                                    'mt-2 w-full rounded-xl border bg-[var(--color-paper)] px-4 py-3 text-base sm:text-sm outline-none transition placeholder:text-[var(--color-muted)] focus:border-[var(--color-primary)]',
                                     'border-[#C98B82]' => $errors->has('email'),
                                     'border-[var(--color-line)]' => ! $errors->has('email'),
                                 ])
                                 placeholder="you@example.com"
                             >
                             @error('email')
-                                <p class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
+                                <p id="email-error" class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
                             @enderror
                         </div>
 
@@ -319,6 +321,7 @@
                                         <input
                                             id="proof"
                                             name="proof"
+                                            @error('proof') aria-invalid="true" aria-describedby="proof-error" @enderror
                                             type="file"
                                             accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf"
                                             required
@@ -326,7 +329,7 @@
                                         >
                                         <p class="mt-2 text-[11px] leading-5 text-[var(--color-muted)]">JPG, PNG, WebP or PDF, up to 5 MB.</p>
                                         @error('proof')
-                                            <p class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
+                                            <p id="proof-error" class="mt-1.5 text-xs text-[#7A2F25]">{{ $message }}</p>
                                         @enderror
                                     </div>
 

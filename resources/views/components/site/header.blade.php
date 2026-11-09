@@ -52,7 +52,7 @@
                 Explore villas
             </a>
 
-            <details class="group relative lg:hidden">
+            <details class="group relative lg:hidden" data-site-menu>
                 <summary class="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-full border border-[var(--color-line)] text-[var(--color-primary)] transition hover:border-[var(--color-primary)] [&::-webkit-details-marker]:hidden" aria-label="Open menu">
                     <svg class="h-5 w-5 group-open:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
                         <path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16" />
@@ -71,6 +71,7 @@
                                 'bg-[var(--color-primary)] text-[var(--color-paper)]' => $link['active'],
                                 'text-[var(--color-ink)] hover:bg-[var(--color-paper-deep)]' => ! $link['active'],
                             ])
+                            @if ($link['active']) aria-current="page" @endif
                         >
                             {{ $link['label'] }}
                             <svg class="h-4 w-4 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">

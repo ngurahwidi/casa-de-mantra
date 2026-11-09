@@ -5,12 +5,13 @@
         <div class="site-container py-14 sm:py-20">
             <nav class="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]" aria-label="Breadcrumb">
                 <a href="{{ route('home') }}" class="transition hover:text-[var(--color-primary)]">Home</a>
-                <span class="mx-2 text-[var(--color-line)]">/</span>
-                <span class="text-[var(--color-primary)]">Gallery</span>
+                <span class="mx-2 text-[var(--color-line)]" aria-hidden="true">/</span>
+                <span class="text-[var(--color-primary)]" aria-current="page">Gallery</span>
             </nav>
 
             <div class="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
                 <x-site.section-heading
+                    as="h1"
                     eyebrow="A look around"
                     title="The villa, in pictures."
                     description="Gardens, pools, bedrooms, and the small details that make a stay feel easy."
@@ -42,8 +43,9 @@
                     <div class="mt-8 columns-1 gap-4 sm:columns-2 lg:columns-3">
                         @foreach ($group['photos'] as $photo)
                             <x-site.photo
-                                :src="$photo['url']"
+                                :media="$photo['media']"
                                 :alt="$photo['alt']"
+                                sizes="(min-width: 1024px) 350px, (min-width: 640px) 50vw, 100vw"
                                 :ratio="$loop->index % 3 === 0 ? 'aspect-[4/5]' : 'aspect-[4/3]'"
                                 class="mb-4 break-inside-avoid rounded-xl"
                             />

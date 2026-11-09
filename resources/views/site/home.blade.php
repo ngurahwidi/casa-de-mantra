@@ -3,14 +3,13 @@
 @section('content')
     <section class="relative isolate min-h-[34rem] overflow-hidden bg-[var(--color-primary)] text-white sm:min-h-[40rem]">
         @if ($heroPhoto)
-            <img
-                src="{{ $heroPhoto->getUrl() }}"
-                alt="{{ $heroPhoto->getCustomProperty('alt') ?: ($profile?->name ?? 'Villa') }}"
+            <x-site.picture
+                :media="$heroPhoto"
+                :alt="$heroPhoto->getCustomProperty('alt') ?: ($profile?->name ?? 'Villa')"
+                sizes="100vw"
+                priority
                 class="absolute inset-0 -z-20 h-full w-full object-cover"
-                loading="eager"
-                fetchpriority="high"
-                decoding="async"
-            >
+            />
         @else
             <div class="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.16),transparent_45%),radial-gradient(circle_at_80%_10%,rgba(255,255,255,0.08),transparent_40%)]"></div>
         @endif
@@ -28,7 +27,7 @@
                 @if ($profile)
                     <livewire:site.home-search :max-guests="$maxGuests" />
 
-                    <p class="mt-3 flex items-center gap-2 text-[11px] leading-5 text-white/60">
+                    <p class="mt-3 flex items-center gap-2 text-[11px] leading-5 text-white/80">
                         <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
                             <circle cx="12" cy="12" r="9" />
                             <path stroke-linecap="round" d="M12 11v5M12 8h.01" />
@@ -103,6 +102,7 @@
                     @foreach ($villas as $villa)
                         <x-site.villa-card
                             :villa="$villa"
+                            :profile="$profile"
                             :price="$prices[$villa->id] ?? null"
                             :stay="$stays[$villa->id] ?? null"
                             :stay-query="$stayQuery"
@@ -166,8 +166,9 @@
                 <div class="mt-10 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
                     @foreach ($photos as $index => $photo)
                         <x-site.photo
-                            :src="$photo['url']"
+                            :media="$photo['media']"
                             :alt="$photo['alt']"
+                            :sizes="$index === 0 ? '(min-width: 1024px) 540px, 100vw' : '(min-width: 1024px) 270px, 50vw'"
                             :ratio="$index === 0 ? 'aspect-[4/5] sm:aspect-auto sm:h-full' : 'aspect-square'"
                             class="{{ $index === 0 ? 'col-span-2 row-span-2 group' : 'group' }}"
                         />
@@ -207,7 +208,7 @@
                                     @endfor
                                 </div>
                                 <p class="mt-2 text-sm leading-6 text-white/75">{{ \Illuminate\Support\Str::limit($review->comment, 140) }}</p>
-                                <p class="mt-2 text-[10px] uppercase tracking-[0.16em] text-white/45">{{ $review->guest_name }}</p>
+                                <p class="mt-2 text-[10px] uppercase tracking-[0.16em] text-white/65">{{ $review->guest_name }}</p>
                             </div>
                         @endforeach
                     </div>
