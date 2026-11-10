@@ -62,6 +62,7 @@ class NotificationLogResource extends Resource
                         NotificationLogStatus::Queued => 'gray',
                         NotificationLogStatus::Sent => 'success',
                         NotificationLogStatus::Failed => 'danger',
+                        NotificationLogStatus::Skipped => 'warning',
                     }),
                 TextColumn::make('error_message')
                     ->label('Error')

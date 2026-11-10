@@ -39,7 +39,7 @@ class ReadinessCheck
 
     /**
      * Email templates the reservation events send; each must exist and be active. The
-     * pre-arrival reminder is a scheduled courtesy (T7.2) and is not needed to sell.
+     * reminders (T7.2) are a scheduled courtesy and are not needed to sell.
      */
     public const NOTIFICATION_CODES = [
         'reservation_received', 'reservation_awaiting_payment', 'reservation_confirmed',

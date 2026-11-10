@@ -38,6 +38,8 @@ class BaseDataSeedersTest extends TestCase
         'reservation_expired',
         'reservation_cancelled',
         'admin_new_request',
+        'admin_pending_reminder',
+        'payment_reminder',
         'pre_arrival_reminder',
     ];
 

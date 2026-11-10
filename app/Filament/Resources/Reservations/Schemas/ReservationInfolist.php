@@ -266,6 +266,7 @@ class ReservationInfolist
                                         NotificationLogStatus::Queued => 'gray',
                                         NotificationLogStatus::Sent => 'success',
                                         NotificationLogStatus::Failed => 'danger',
+                                        NotificationLogStatus::Skipped => 'warning',
                                     }),
                                 TextEntry::make('error_message')
                                     ->placeholder('—'),

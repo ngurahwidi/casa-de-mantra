@@ -166,6 +166,42 @@ class NotificationTemplateSeeder extends Seeder
                     TEXT,
             ],
 
+            'admin_pending_reminder' => [
+                'Reminder: booking request {{ reservation_code }} is still waiting for a reply',
+                <<<TEXT
+                    The booking request below has not been answered yet, and the guest is waiting to hear from you.
+
+                    {$stay}
+
+                    Guest: {{ guest_name }}
+                    Email: {{ guest_email }}
+                    Phone: {{ guest_phone }}
+
+                    Please check availability, including the OTA calendars, then approve or reject the request: {{ admin_url }}
+                    TEXT,
+            ],
+
+            'payment_reminder' => [
+                'Reminder: payment for your booking {{ reservation_code }} is due soon',
+                <<<TEXT
+                    Dear {{ guest_name }},
+
+                    This is a friendly reminder that we have not yet received the payment for your booking at {{ property_name }}.
+
+                    {$stay}
+
+                    To secure your booking, please transfer {{ total }} before {{ payment_deadline }}:
+
+                    {{ payment_instructions }}
+
+                    Please include your reservation code {{ reservation_code }} in the transfer note, then upload your proof of payment here: {{ status_url }}
+
+                    If you have already made the transfer, please upload your proof of payment so we can confirm your booking. If we do not receive your payment before the deadline, the request will expire and the dates will be released.
+
+                    {$signature}
+                    TEXT,
+            ],
+
             'pre_arrival_reminder' => [
                 'See you soon at {{ property_name }}',
                 <<<TEXT

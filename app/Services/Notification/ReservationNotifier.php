@@ -4,6 +4,7 @@ namespace App\Services\Notification;
 
 use App\Enums\NotificationChannel;
 use App\Enums\NotificationLogStatus;
+use App\Enums\ReservationPaymentStatus;
 use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Jobs\SendReservationNotification;
@@ -31,14 +32,25 @@ use RuntimeException;
  *
  * An inactive template is a deliberate choice and sends nothing. A missing one is a configuration
  * error, so it is logged as failed for an admin to notice.
+ *
+ * Reminders (T7.2) are chosen by ReservationReminders and queued here the same way, once per time
+ * the reservation entered the status they are about. Unlike a status change email, a reminder is
+ * checked again when it is delivered and skipped if it no longer applies, such as a payment
+ * reminder for a reservation paid while the email waited in the queue.
  */
 class ReservationNotifier
 {
+    public const ADMIN_PENDING_REMINDER = 'admin_pending_reminder';
+
+    public const PAYMENT_REMINDER = 'payment_reminder';
+
+    public const PRE_ARRIVAL_REMINDER = 'pre_arrival_reminder';
+
     public function __construct(private readonly ReservationTemplateRenderer $renderer) {}
 
     public function queueForStatusChange(Reservation $reservation, ReservationStatusLog $statusLog): void
     {
-        if ($reservation->source !== ReservationSource::DirectWeb) {
+        if (! self::isNotified($reservation)) {
             return;
         }
 
@@ -49,6 +61,25 @@ class ReservationNotifier
                 $code,
             ]));
         }
+    }
+
+    /**
+     * Queues a reminder about the status the reservation is in, given as the log of the change
+     * that put it there. Asking again for the same status log queues nothing.
+     *
+     * @return bool whether a new reminder was queued
+     */
+    public function queueReminder(Reservation $reservation, ReservationStatusLog $statusLog, string $code): bool
+    {
+        if (! self::isNotified($reservation)) {
+            return false;
+        }
+
+        return $this->queue($reservation, $code, implode(':', [
+            $statusLog->getKey(),
+            NotificationChannel::Email->value,
+            $code,
+        ]));
     }
 
     /**
@@ -73,6 +104,16 @@ class ReservationNotifier
                 ->where('channel', $locked->channel)
                 ->firstOrFail();
             $reservation = $locked->reservation()->firstOrFail();
+
+            if (! self::reminderStillApplies($locked->template, $reservation)) {
+                $locked->update([
+                    'status' => NotificationLogStatus::Skipped,
+                    'error_message' => "Not sent: the reservation is {$reservation->status->value} now and no longer needs this reminder.",
+                ]);
+
+                return;
+            }
+
             $profile = PropertyProfile::current();
             $recipient = self::recipient($locked->template, $reservation, $profile);
 
@@ -129,7 +170,10 @@ class ReservationNotifier
         };
     }
 
-    private function queue(Reservation $reservation, string $code, string $dedupeKey): void
+    /**
+     * @return bool whether a new notification was put on the queue
+     */
+    private function queue(Reservation $reservation, string $code, string $dedupeKey): bool
     {
         $template = NotificationTemplate::query()
             ->where('code', $code)
@@ -137,7 +181,7 @@ class ReservationNotifier
             ->first();
 
         if ($template?->is_active === false) {
-            return;
+            return false;
         }
 
         $notificationLog = NotificationLog::query()->createOrFirst(
@@ -151,9 +195,34 @@ class ReservationNotifier
             ],
         );
 
-        if ($notificationLog->wasRecentlyCreated && $template !== null) {
-            SendReservationNotification::dispatch($notificationLog);
+        if (! $notificationLog->wasRecentlyCreated || $template === null) {
+            return false;
         }
+
+        SendReservationNotification::dispatch($notificationLog);
+
+        return true;
+    }
+
+    private static function isNotified(Reservation $reservation): bool
+    {
+        return $reservation->source === ReservationSource::DirectWeb;
+    }
+
+    /**
+     * Whether a reminder still fits the reservation as it is now; other notifications always do.
+     */
+    private static function reminderStillApplies(string $code, Reservation $reservation): bool
+    {
+        return match ($code) {
+            self::ADMIN_PENDING_REMINDER => $reservation->status === ReservationStatus::Pending,
+            self::PAYMENT_REMINDER => $reservation->status === ReservationStatus::AwaitingPayment
+                && $reservation->payment_status === ReservationPaymentStatus::Unpaid
+                && $reservation->expires_at?->isFuture() === true
+                && ! $reservation->pendingPaymentProofs()->exists(),
+            self::PRE_ARRIVAL_REMINDER => $reservation->status === ReservationStatus::Confirmed,
+            default => true,
+        };
     }
 
     /**
