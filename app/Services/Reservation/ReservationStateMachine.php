@@ -4,6 +4,7 @@ namespace App\Services\Reservation;
 
 use App\Enums\OutboxEventStatus;
 use App\Enums\ReservationStatus;
+use App\Events\ReservationStatusChanged;
 use App\Exceptions\Reservation\InvalidStatusTransitionException;
 use App\Models\OutboxEvent;
 use App\Models\Reservation;
@@ -23,7 +24,8 @@ use Illuminate\Support\Facades\DB;
  * outbox event in the same transaction as the status change. The reservation row is locked
  * and its status re-read from the database, so a stale model or two concurrent transitions
  * cannot both pass validation. The creation of a reservation is recorded the same way by
- * recordCreated(), as a `reservation.created` event.
+ * recordCreated(), as a `reservation.created` event. Both also dispatch ReservationStatusChanged
+ * after the transaction commits, which is what sends the emails (T7.1).
  *
  * This only enforces the order of statuses. Preconditions such as availability or payment
  * are checked by the action that asks for the transition, inside the same transaction.
@@ -83,13 +85,15 @@ class ReservationStateMachine
             $reservation->status = $to;
             $reservation->save();
 
-            ReservationStatusLog::create([
+            $statusLog = ReservationStatusLog::create([
                 'reservation_id' => $reservation->getKey(),
                 'admin_user_id' => $actor?->getKey(),
                 'from_status' => $from,
                 'to_status' => $to,
                 'note' => $note,
             ]);
+
+            ReservationStatusChanged::dispatch($reservation, $statusLog);
 
             OutboxEvent::create([
                 'type' => "reservation.{$to->value}",
@@ -118,13 +122,15 @@ class ReservationStateMachine
      */
     public function recordCreated(Reservation $reservation, ?User $actor = null, ?string $note = null): void
     {
-        ReservationStatusLog::create([
+        $statusLog = ReservationStatusLog::create([
             'reservation_id' => $reservation->getKey(),
             'admin_user_id' => $actor?->getKey(),
             'from_status' => null,
             'to_status' => $reservation->status,
             'note' => $note,
         ]);
+
+        ReservationStatusChanged::dispatch($reservation, $statusLog);
 
         OutboxEvent::create([
             'type' => 'reservation.created',

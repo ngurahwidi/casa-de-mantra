@@ -222,7 +222,7 @@ class ViewReservation extends ViewRecord
                 ->modalSubmitActionLabel('Cancel reservation')
                 ->schema([
                     Textarea::make('reason')
-                        ->helperText('Kept in the status history.')
+                        ->helperText('Emailed to the guest and kept in the status history.')
                         ->required()
                         ->rows(3),
                 ])

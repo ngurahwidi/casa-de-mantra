@@ -33,6 +33,7 @@ class ContactController extends Controller
                 messageBody: $data['message'],
                 villa: $data['villa'] ?? null,
                 propertyName: $profile->name,
+                sender: $profile->mailSender(),
             ));
         }
 

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -85,6 +86,14 @@ class PropertyProfile extends Model
     public static function forgetCurrent(): void
     {
         Cache::forget(static::CACHE_KEY);
+    }
+
+    /**
+     * The sender of outgoing email; without a property email, MAIL_FROM_ADDRESS is used.
+     */
+    public function mailSender(): ?Address
+    {
+        return blank($this->email) ? null : new Address($this->email, $this->name);
     }
 
     /**

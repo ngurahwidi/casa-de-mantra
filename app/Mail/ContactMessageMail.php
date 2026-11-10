@@ -25,11 +25,13 @@ class ContactMessageMail extends Mailable
         public readonly string $messageBody,
         public readonly ?string $villa,
         public readonly string $propertyName,
+        public readonly ?Address $sender = null,
     ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
+            from: $this->sender,
             subject: 'New enquiry from '.$this->senderName,
             replyTo: [new Address($this->senderEmail, $this->senderName)],
         );
