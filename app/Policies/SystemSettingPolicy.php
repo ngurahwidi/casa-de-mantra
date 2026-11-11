@@ -6,8 +6,8 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * System settings (property profile, taxes, cancellation policies, iCal feeds, notification
- * templates) and what is sold (room types, units, amenities): every admin may look at them,
+ * System settings (property profile, taxes, cancellation policies, notification templates)
+ * and what is sold (room types, units, amenities): every admin may look at them,
  * only the owner may change them. Staff run the daily work: reservations, the calendar,
  * prices and content.
  *

@@ -6,11 +6,9 @@ use App\Filament\Resources\Reservations\Pages\ListReservations;
 use App\Filament\Widgets\PaymentsDueWidget;
 use App\Filament\Widgets\ReservationStatsOverview;
 use App\Filament\Widgets\TodaysStaysWidget;
-use App\Models\IcalFeed;
 use App\Models\Payment;
 use App\Models\PropertyProfile;
 use App\Models\Reservation;
-use App\Models\RoomType;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -58,15 +56,6 @@ class DashboardTest extends TestCase
         Livewire::test(ReservationStatsOverview::class)
             ->assertSee('Pending requests')
             ->assertSee('Oldest requested 3 hours ago');
-    }
-
-    public function test_stats_name_the_failing_ical_feeds(): void
-    {
-        IcalFeed::factory()->for(RoomType::factory()->state(['name' => 'Garden Villa']))->create(['last_status' => 'HTTP 404']);
-
-        Livewire::test(ReservationStatsOverview::class)
-            ->assertSee('1 feed failing')
-            ->assertSee('Garden Villa (Booking)');
     }
 
     public function test_stats_show_occupancy_of_the_current_month(): void

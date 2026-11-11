@@ -19,7 +19,7 @@ use InvalidArgumentException;
 /**
  * Availability from this application's own data.
  *
- * A unit is taken on a night when an availability block (manual, iCal or OTA) or an
+ * A unit is taken on a night when an availability block (manual or OTA) or an
  * awaiting_payment/confirmed reservation covers it. Pending requests never block.
  * Inactive units are never sold. A blocking reservation room without an assigned unit
  * still consumes one unit of its room type, so capacity is never oversold.

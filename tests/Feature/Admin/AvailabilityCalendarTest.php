@@ -65,15 +65,15 @@ class AvailabilityCalendarTest extends TestCase
         $this->reserve($unit, 'WAIT5678', 'Ben Carter', ReservationStatus::AwaitingPayment, '2026-12-10', '2026-12-12');
         $this->reserve($unit, 'PEND0000', 'Cara Diaz', ReservationStatus::Pending, '2026-12-14', '2026-12-15');
         AvailabilityBlock::factory()->for($unit)->create(['start_date' => '2026-12-20', 'end_date' => '2026-12-22', 'reason' => 'Pool repair']);
-        AvailabilityBlock::factory()->for($unit)->fromIcal()->create(['start_date' => '2026-12-27', 'end_date' => '2026-12-29']);
+        AvailabilityBlock::factory()->for($unit)->create(['start_date' => '2026-12-27', 'end_date' => '2026-12-29', 'source' => AvailabilityBlockSource::OtaManual, 'reason' => 'Booking.com 4521']);
 
         $this->page()
             ->assertSee('CONF1234 · Ayu Lestari')
             ->assertSee('WAIT5678 · Ben Carter')
             ->assertDontSee('PEND0000')
             ->assertSee('Pool repair')
-            ->assertSee('iCal: Booking')
-            // 3 confirmed + 2 awaiting payment + 2 blocked + 2 iCal.
+            ->assertSee('Booking.com 4521')
+            // 3 confirmed + 2 awaiting payment + 2 blocked + 2 OTA booking.
             ->assertSee('9 nights taken');
     }
 
@@ -236,18 +236,16 @@ class AvailabilityCalendarTest extends TestCase
         $this->assertSame(0, AvailabilityBlock::count());
     }
 
-    public function test_manual_block_is_unblocked_but_ical_block_cannot_be(): void
+    public function test_block_is_unblocked(): void
     {
         $unit = Unit::factory()->create();
-        $manual = AvailabilityBlock::factory()->for($unit)->create(['start_date' => '2026-12-20', 'end_date' => '2026-12-22']);
-        $ical = AvailabilityBlock::factory()->for($unit)->fromIcal()->create(['start_date' => '2026-12-27', 'end_date' => '2026-12-29']);
+        $block = AvailabilityBlock::factory()->for($unit)->create(['start_date' => '2026-12-20', 'end_date' => '2026-12-22']);
+        $other = AvailabilityBlock::factory()->for($unit)->create(['start_date' => '2026-12-27', 'end_date' => '2026-12-29']);
 
-        $this->page()
-            ->assertActionHidden(TestAction::make('delete')->table($ical))
-            ->callAction(TestAction::make('delete')->table($manual));
+        $this->page()->callAction(TestAction::make('delete')->table($block));
 
-        $this->assertModelMissing($manual);
-        $this->assertModelExists($ical);
+        $this->assertModelMissing($block);
+        $this->assertModelExists($other);
     }
 
     public function test_blocks_table_lists_upcoming_blocks_of_the_shown_unit_only(): void

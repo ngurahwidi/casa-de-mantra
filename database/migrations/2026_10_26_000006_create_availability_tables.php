@@ -1,8 +1,6 @@
 <?php
 
 use App\Enums\AvailabilityBlockSource;
-use App\Enums\IcalChannel;
-use App\Enums\IcalDirection;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -50,8 +48,10 @@ return new class extends Migration
             $table->index(['ical_feed_id', 'external_uid']);
         });
 
-        $channels = $this->quoted(IcalChannel::cases());
-        $directions = $this->quoted(IcalDirection::cases());
+        // The iCal enums were removed together with the feature (see drop_ical_sync), so their
+        // values are written out here and this migration still runs on a fresh database.
+        $channels = "'booking', 'expedia', 'airbnb', 'other'";
+        $directions = "'import', 'export'";
         $sources = $this->quoted(AvailabilityBlockSource::cases());
 
         DB::statement("ALTER TABLE ical_feeds ADD CONSTRAINT ical_feeds_channel_check CHECK (channel IN ({$channels}))");

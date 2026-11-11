@@ -5,7 +5,6 @@ namespace App\Services\Dashboard;
 use App\Data\Dashboard\Occupancy;
 use App\Enums\ReservationPaymentStatus;
 use App\Enums\ReservationStatus;
-use App\Models\IcalFeed;
 use App\Models\PropertyProfile;
 use App\Models\Reservation;
 use App\Models\ReservationNight;
@@ -111,14 +110,6 @@ class DashboardOverview
             ->whereNull('ota_blocked_at')
             ->where('check_out', '>', $this->today())
             ->orderBy('check_in');
-    }
-
-    /**
-     * @return Builder<IcalFeed>
-     */
-    public function failingIcalFeeds(): Builder
-    {
-        return IcalFeed::query()->failing();
     }
 
     /**

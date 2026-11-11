@@ -5,7 +5,6 @@ namespace App\Filament\Widgets;
 use App\Enums\ReservationStatus;
 use App\Filament\Pages\ReadyToSell;
 use App\Filament\Resources\Reservations\ReservationResource;
-use App\Models\IcalFeed;
 use App\Models\PropertyProfile;
 use App\Services\Dashboard\DashboardOverview;
 use App\Services\Readiness\ReadinessCheck;
@@ -38,7 +37,6 @@ class ReservationStatsOverview extends StatsOverviewWidget
             Stat::make('Check-outs today', $overview->checkOutsToday()->count())
                 ->icon(Heroicon::OutlinedArrowRightStartOnRectangle),
             $this->notBlockedOnOta($overview),
-            $this->icalSync($overview),
             $this->occupancy($overview),
             $this->readiness(),
         ];
@@ -101,18 +99,6 @@ class ReservationStatsOverview extends StatsOverviewWidget
                     'stay' => ['from' => now(PropertyProfile::current()->timezone)->toDateString()],
                 ],
             ]));
-    }
-
-    private function icalSync(DashboardOverview $overview): Stat
-    {
-        $failing = $overview->failingIcalFeeds()->with('roomType')->get();
-
-        return Stat::make('iCal sync', $failing->isEmpty() ? 'OK' : trans_choice(':count feed failing|:count feeds failing', $failing->count()))
-            ->icon(Heroicon::OutlinedArrowPath)
-            ->description($failing->isEmpty()
-                ? 'No failed imports'
-                : $failing->map(fn (IcalFeed $feed): string => $feed->roomType->name.' ('.str($feed->channel->value)->headline().')')->implode(', '))
-            ->color($failing->isEmpty() ? 'success' : 'danger');
     }
 
     private function occupancy(DashboardOverview $overview): Stat

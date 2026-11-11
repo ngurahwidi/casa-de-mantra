@@ -35,7 +35,6 @@ class SettingsResourcesTest extends TestCase
     public static function indexUrls(): array
     {
         return [
-            'ical feeds' => ['/admin/ical-feeds'],
             'cancellation policies' => ['/admin/cancellation-policies'],
             'notification templates' => ['/admin/notification-templates'],
             'notification logs' => ['/admin/notification-logs'],

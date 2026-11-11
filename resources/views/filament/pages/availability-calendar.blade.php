@@ -21,7 +21,6 @@
         .availability-calendar__day--success { background: color-mix(in oklab, var(--success-500) 16%, transparent); border-color: color-mix(in oklab, var(--success-500) 45%, transparent); }
         .availability-calendar__day--warning { background: color-mix(in oklab, var(--warning-500) 18%, transparent); border-color: color-mix(in oklab, var(--warning-500) 50%, transparent); }
         .availability-calendar__day--danger { background: color-mix(in oklab, var(--danger-500) 14%, transparent); border-color: color-mix(in oklab, var(--danger-500) 45%, transparent); }
-        .availability-calendar__day--info { background: color-mix(in oklab, var(--info-500) 14%, transparent); border-color: color-mix(in oklab, var(--info-500) 40%, transparent); }
         .availability-calendar__day--gray { background: color-mix(in oklab, var(--gray-500) 16%, transparent); border-color: color-mix(in oklab, var(--gray-500) 40%, transparent); }
         .availability-calendar__day--past { opacity: 0.45; }
         .availability-calendar__legend { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; margin-top: 0.75rem; font-size: 0.75rem; color: var(--gray-500); }
@@ -108,7 +107,6 @@
         <span><span class="availability-calendar__swatch availability-calendar__day--success"></span>Confirmed</span>
         <span><span class="availability-calendar__swatch availability-calendar__day--warning"></span>Awaiting payment</span>
         <span><span class="availability-calendar__swatch availability-calendar__day--danger"></span>Blocked</span>
-        <span><span class="availability-calendar__swatch availability-calendar__day--info"></span>iCal (OTA calendar)</span>
         <span><span class="availability-calendar__swatch availability-calendar__day--gray"></span>OTA booking</span>
     </div>
 </div>

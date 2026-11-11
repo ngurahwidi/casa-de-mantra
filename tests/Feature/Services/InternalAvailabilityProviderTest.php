@@ -7,7 +7,6 @@ use App\Enums\AvailabilityBlockSource;
 use App\Enums\ReservationStatus;
 use App\Enums\UnitStatus;
 use App\Models\AvailabilityBlock;
-use App\Models\IcalFeed;
 use App\Models\Reservation;
 use App\Models\ReservationRoom;
 use App\Models\RoomType;
@@ -142,7 +141,6 @@ class InternalAvailabilityProviderTest extends TestCase
     {
         return [
             'manual' => [AvailabilityBlockSource::Manual],
-            'ical' => [AvailabilityBlockSource::Ical],
             'ota manual' => [AvailabilityBlockSource::OtaManual],
         ];
     }
@@ -150,13 +148,7 @@ class InternalAvailabilityProviderTest extends TestCase
     #[DataProvider('blockSources')]
     public function test_availability_blocks_block(AvailabilityBlockSource $source): void
     {
-        $factory = AvailabilityBlock::factory()->for($this->unit);
-
-        if ($source === AvailabilityBlockSource::Ical) {
-            $factory = $factory->fromIcal(IcalFeed::factory()->for($this->roomType)->create());
-        }
-
-        $factory->create(['source' => $source, 'start_date' => '2026-12-24', 'end_date' => '2026-12-27']);
+        AvailabilityBlock::factory()->for($this->unit)->create(['source' => $source, 'start_date' => '2026-12-24', 'end_date' => '2026-12-27']);
 
         $this->assertFalse($this->available('2026-12-25', '2026-12-28'));
         $this->assertTrue($this->available('2026-12-27', '2026-12-28'));

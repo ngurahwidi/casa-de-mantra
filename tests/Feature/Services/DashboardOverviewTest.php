@@ -6,7 +6,6 @@ use App\Enums\PaymentStatus;
 use App\Enums\ReservationPaymentStatus;
 use App\Enums\ReservationStatus;
 use App\Enums\UnitStatus;
-use App\Models\IcalFeed;
 use App\Models\Payment;
 use App\Models\PropertyProfile;
 use App\Models\Reservation;
@@ -113,18 +112,6 @@ class DashboardOverviewTest extends TestCase
         $notBlocked = app(DashboardOverview::class)->notBlockedOnOta()->pluck('id')->all();
 
         $this->assertSame([$inHouse->id, $upcoming->id], $notBlocked);
-    }
-
-    public function test_failing_ical_feeds_are_imports_whose_latest_sync_failed(): void
-    {
-        $failing = IcalFeed::factory()->create(['last_status' => 'HTTP 404']);
-        IcalFeed::factory()->create(['last_status' => IcalFeed::STATUS_OK]);
-        IcalFeed::factory()->create(['last_status' => null]);
-        IcalFeed::factory()->export()->create(['last_status' => 'HTTP 404']);
-
-        $feeds = app(DashboardOverview::class)->failingIcalFeeds()->pluck('id')->all();
-
-        $this->assertSame([$failing->id], $feeds);
     }
 
     public function test_occupancy_counts_sold_nights_of_this_month_on_active_units(): void

@@ -4,7 +4,6 @@ namespace Tests\Feature\Policies;
 
 use App\Models\Amenity;
 use App\Models\CancellationPolicy;
-use App\Models\IcalFeed;
 use App\Models\NotificationTemplate;
 use App\Models\PropertyProfile;
 use App\Models\RoomType;
@@ -30,7 +29,6 @@ class SystemSettingPolicyTest extends TestCase
             'property profile' => [PropertyProfile::class, fn (): Model => PropertyProfile::factory()->create()],
             'tax fee' => [TaxFee::class, fn (): Model => TaxFee::factory()->create()],
             'cancellation policy' => [CancellationPolicy::class, fn (): Model => CancellationPolicy::factory()->create()],
-            'ical feed' => [IcalFeed::class, fn (): Model => IcalFeed::factory()->create()],
             'notification template' => [NotificationTemplate::class, fn (): Model => NotificationTemplate::factory()->create()],
             'room type' => [RoomType::class, fn (): Model => RoomType::factory()->create()],
             'unit' => [Unit::class, fn (): Model => Unit::factory()->create()],
@@ -77,13 +75,5 @@ class SystemSettingPolicyTest extends TestCase
         foreach (['update', 'delete'] as $ability) {
             $this->assertFalse($staff->can($ability, $record), $ability);
         }
-    }
-
-    public function test_only_the_owner_may_sync_an_ical_feed(): void
-    {
-        $feed = IcalFeed::factory()->create();
-
-        $this->assertTrue(User::factory()->owner()->create()->can('sync', $feed));
-        $this->assertFalse(User::factory()->create()->can('sync', $feed));
     }
 }

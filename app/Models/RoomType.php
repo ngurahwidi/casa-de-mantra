@@ -113,14 +113,6 @@ class RoomType extends Model implements HasMedia
     }
 
     /**
-     * @return HasMany<IcalFeed, $this>
-     */
-    public function icalFeeds(): HasMany
-    {
-        return $this->hasMany(IcalFeed::class);
-    }
-
-    /**
      * @return HasMany<ReservationRoom, $this>
      */
     public function reservationRooms(): HasMany

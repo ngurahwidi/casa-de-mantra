@@ -5,7 +5,6 @@ namespace Tests\Feature\Services;
 use App\Actions\Pricing\SetBasePrice;
 use App\Enums\UnitStatus;
 use App\Models\CancellationPolicy;
-use App\Models\IcalFeed;
 use App\Models\NotificationTemplate;
 use App\Models\PropertyProfile;
 use App\Models\RateRule;
@@ -70,19 +69,6 @@ class ReadinessCheckTest extends TestCase
             ['reservation_confirmed', 'admin_new_request'],
             $check->inactiveNotificationTemplates(),
         );
-    }
-
-    public function test_only_import_feeds_whose_last_sync_failed_are_failing(): void
-    {
-        $roomType = RoomType::factory()->create();
-        $failing = IcalFeed::factory()->for($roomType)->create(['last_status' => 'HTTP 404']);
-        IcalFeed::factory()->for($roomType)->create(['last_status' => IcalFeed::STATUS_OK]);
-        IcalFeed::factory()->for($roomType)->create(); // never synced yet
-        IcalFeed::factory()->for($roomType)->export()->create(['last_status' => 'HTTP 404']);
-
-        $reported = app(ReadinessCheck::class)->failingIcalFeeds();
-
-        $this->assertSame([$failing->id], $reported->pluck('id')->all());
     }
 
     public function test_a_room_type_is_complete_only_with_capacity_photo_unit_and_prices(): void
@@ -209,7 +195,7 @@ class ReadinessCheckTest extends TestCase
         $this->assertSame(['One published room type is incomplete'], $check->report()->issues);
     }
 
-    public function test_a_failing_ical_feed_or_incomplete_profile_blocks_sales(): void
+    public function test_an_incomplete_profile_blocks_sales(): void
     {
         $this->seed(NotificationTemplateSeeder::class);
         $sellable = $this->completeRoomType();
@@ -217,10 +203,6 @@ class ReadinessCheckTest extends TestCase
 
         $check = app(ReadinessCheck::class);
         $this->assertTrue($check->report()->ready);
-
-        IcalFeed::factory()->for($sellable)->create(['last_status' => 'HTTP 500']);
-        $this->assertFalse($check->report()->ready);
-        $this->assertContains('One iCal feed is failing to import', $check->report()->issues);
 
         PropertyProfile::current()->update(['email' => null]);
         $this->assertFalse($check->report()->ready);

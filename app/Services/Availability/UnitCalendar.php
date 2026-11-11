@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use InvalidArgumentException;
 
 /**
- * What takes each night of one unit: its availability blocks (manual, iCal, OTA) and the
+ * What takes each night of one unit: its availability blocks (manual, OTA) and the
  * awaiting_payment/confirmed reservations assigned to it. Pending requests hold no unit.
  *
  * The admin availability calendar shows it, and CreateManualBlock uses it to refuse nights
@@ -41,7 +41,6 @@ class UnitCalendar
             ->get();
 
         $blocks = $unit->availabilityBlocks()
-            ->with('icalFeed')
             ->where('start_date', '<', $end)
             ->where('end_date', '>', $start)
             ->orderBy('start_date')

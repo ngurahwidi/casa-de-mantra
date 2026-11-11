@@ -4,7 +4,6 @@ namespace Tests\Feature\Admin;
 
 use App\Filament\Resources\Amenities\Pages\ManageAmenities;
 use App\Filament\Resources\CancellationPolicies\Pages\ManageCancellationPolicies;
-use App\Filament\Resources\IcalFeeds\Pages\ManageIcalFeeds;
 use App\Filament\Resources\NotificationTemplates\Pages\ManageNotificationTemplates;
 use App\Filament\Resources\PropertyProfiles\PropertyProfileResource;
 use App\Filament\Resources\RoomTypes\Pages\ListRoomTypes;
@@ -17,7 +16,6 @@ use App\Filament\Resources\TaxFees\Pages\ManageTaxFees;
 use App\Filament\Resources\Users\UserResource;
 use App\Models\Amenity;
 use App\Models\CancellationPolicy;
-use App\Models\IcalFeed;
 use App\Models\NotificationTemplate;
 use App\Models\PropertyProfile;
 use App\Models\RoomType;
@@ -66,19 +64,6 @@ class StaffAccessTest extends TestCase
 
         $this->get('/admin/property-profile')->assertForbidden();
         $this->get('/admin/property-profile/view')->assertOk()->assertSee('Casa Demo');
-    }
-
-    public function test_staff_see_ical_feeds_without_changing_or_syncing_them(): void
-    {
-        $feed = IcalFeed::factory()->create(['last_status' => 'The calendar link returned HTTP 404.']);
-
-        Livewire::test(ManageIcalFeeds::class)
-            ->assertCanSeeTableRecords([$feed])
-            ->assertSee('The calendar link returned HTTP 404.')
-            ->assertActionHidden('create')
-            ->assertActionHidden(TestAction::make('sync')->table($feed))
-            ->assertActionHidden(TestAction::make('edit')->table($feed))
-            ->assertActionHidden(TestAction::make('delete')->table($feed));
     }
 
     public function test_staff_read_templates_and_policies_without_editing_them(): void

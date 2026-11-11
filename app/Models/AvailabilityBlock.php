@@ -18,12 +18,10 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'unit_id',
-    'ical_feed_id',
     'start_date',
     'end_date',
     'source',
     'reason',
-    'external_uid',
 ])]
 class AvailabilityBlock extends Model
 {
@@ -36,14 +34,6 @@ class AvailabilityBlock extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
-    }
-
-    /**
-     * @return BelongsTo<IcalFeed, $this>
-     */
-    public function icalFeed(): BelongsTo
-    {
-        return $this->belongsTo(IcalFeed::class);
     }
 
     /**

@@ -140,30 +140,6 @@
                     </div>
                 @endif
             </div>
-
-            <div @class(['ready-to-sell__row', 'ready-to-sell__row--fail' => $feeds['failing'] !== []])>
-                <x-filament::icon
-                    :icon="$feeds['failing'] === [] ? $passIcon : $failIcon"
-                    @class(['ready-to-sell__row-icon', 'ready-to-sell__row-icon--'.$passes($feeds['failing'] === [])])
-                />
-
-                <div class="ready-to-sell__row-body">
-                    <span class="ready-to-sell__label">iCal feeds</span>
-                    <span class="ready-to-sell__detail">
-                        @if ($feeds['failing'] === [])
-                            No import feed is failing.
-                        @else
-                            Failing: {{ implode(', ', $feeds['failing']) }}.
-                        @endif
-                    </span>
-                </div>
-
-                @if ($feeds['failing'] !== [])
-                    <div class="ready-to-sell__fix">
-                        <x-filament::link :href="$feeds['url']">Manage iCal feeds</x-filament::link>
-                    </div>
-                @endif
-            </div>
         </div>
     </section>
 

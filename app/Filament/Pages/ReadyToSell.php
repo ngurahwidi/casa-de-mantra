@@ -4,11 +4,9 @@ namespace App\Filament\Pages;
 
 use App\Data\Readiness\RoomTypeReadiness;
 use App\Data\Readiness\UnpricedRange;
-use App\Filament\Resources\IcalFeeds\IcalFeedResource;
 use App\Filament\Resources\NotificationTemplates\NotificationTemplateResource;
 use App\Filament\Resources\PropertyProfiles\PropertyProfileResource;
 use App\Filament\Resources\RoomTypes\RoomTypeResource;
-use App\Models\IcalFeed;
 use App\Services\Readiness\ReadinessCheck;
 use BackedEnum;
 use Filament\Pages\Page;
@@ -92,13 +90,6 @@ class ReadyToSell extends Page
                     $report->inactiveNotificationTemplates,
                 ),
                 'url' => NotificationTemplateResource::getUrl('index'),
-            ],
-            'feeds' => [
-                // Room type and channel, as the iCal settings list them.
-                'failing' => $report->failingIcalFeeds
-                    ->map(fn (IcalFeed $feed): string => $feed->roomType->name.' ('.str($feed->channel->value)->headline().')')
-                    ->all(),
-                'url' => IcalFeedResource::getUrl('index'),
             ],
             'roomTypes' => $report->roomTypes
                 ->map(fn (RoomTypeReadiness $readiness): array => [

@@ -44,8 +44,8 @@ use Livewire\Attributes\Url;
 /**
  * The availability calendar for daily operations. The admin picks a room type, then one of its
  * units, and sees that unit's nights: the reservations holding
- * the unit (awaiting payment, confirmed), its manual and OTA blocks and its iCal blocks, each in
- * its own colour, with the price of every night.
+ * the unit (awaiting payment, confirmed) and its manual and OTA blocks, each in its own colour,
+ * with the price of every night.
  *
  * Admins block and unblock nights of the unit here (CreateManualBlock, DeleteManualBlock).
  * Prices are shown but only changed on the room type's Pricing page, the one place for them.
@@ -159,7 +159,7 @@ class AvailabilityCalendar extends Page implements HasTable
                             ->viewData(fn (): array => $this->availabilityCalendar()),
                     ]),
                 Section::make('Blocks')
-                    ->description('Upcoming nights closed on this unit. Blocks from an OTA calendar (iCal) are removed by that calendar, not here.')
+                    ->description('Upcoming nights closed on this unit.')
                     ->visible(fn (): bool => $this->unit() !== null)
                     ->schema([
                         EmbeddedTable::make(),
@@ -171,7 +171,6 @@ class AvailabilityCalendar extends Page implements HasTable
     {
         return $table
             ->query(fn (): Builder => AvailabilityBlock::query()
-                ->with('icalFeed')
                 ->where('unit_id', $this->unit()?->getKey())
                 ->where('end_date', '>', now(PropertyProfile::current()->timezone)->toDateString())
                 ->orderBy('start_date'))
@@ -195,7 +194,6 @@ class AvailabilityCalendar extends Page implements HasTable
                     ->label('Unblock')
                     ->modalHeading('Unblock these nights')
                     ->successNotificationTitle('Nights unblocked')
-                    ->hidden(fn (AvailabilityBlock $record): bool => $record->source === AvailabilityBlockSource::Ical)
                     ->using(function (AvailabilityBlock $record): bool {
                         app(DeleteManualBlock::class)->handle($record);
 
@@ -340,7 +338,6 @@ class AvailabilityCalendar extends Page implements HasTable
         return match ($block->source) {
             AvailabilityBlockSource::Manual => 'Blocked',
             AvailabilityBlockSource::OtaManual => 'OTA booking',
-            AvailabilityBlockSource::Ical => 'iCal'.($block->icalFeed === null ? '' : ': '.str($block->icalFeed->channel->value)->headline()),
         };
     }
 
@@ -349,7 +346,6 @@ class AvailabilityCalendar extends Page implements HasTable
         return match ($source) {
             AvailabilityBlockSource::Manual => 'danger',
             AvailabilityBlockSource::OtaManual => 'gray',
-            AvailabilityBlockSource::Ical => 'info',
         };
     }
 

@@ -4,7 +4,6 @@ namespace Tests\Feature\Actions;
 
 use App\Actions\Availability\DeleteManualBlock;
 use App\Enums\AvailabilityBlockSource;
-use App\Exceptions\Availability\BlockNotAllowedException;
 use App\Models\AvailabilityBlock;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -33,17 +32,5 @@ class DeleteManualBlockTest extends TestCase
         $this->app->make(DeleteManualBlock::class)->handle($block);
 
         $this->assertModelMissing($block);
-    }
-
-    public function test_rejects_a_block_from_an_ical_feed(): void
-    {
-        $block = AvailabilityBlock::factory()->fromIcal()->create();
-
-        try {
-            $this->app->make(DeleteManualBlock::class)->handle($block);
-            $this->fail('An iCal block was removed.');
-        } catch (BlockNotAllowedException) {
-            $this->assertModelExists($block);
-        }
     }
 }

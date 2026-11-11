@@ -50,7 +50,6 @@ class CreateManualBlockTest extends TestCase
         $this->assertSame('2026-12-24', $block->start_date->toDateString());
         $this->assertSame('2026-12-27', $block->end_date->toDateString());
         $this->assertSame('Pool repair', $block->reason);
-        $this->assertNull($block->ical_feed_id);
     }
 
     public function test_single_night_without_a_reason_can_be_blocked(): void
@@ -94,7 +93,7 @@ class CreateManualBlockTest extends TestCase
     public function test_rejects_nights_already_blocked_on_the_unit(): void
     {
         $unit = Unit::factory()->create(['code' => 'V1']);
-        AvailabilityBlock::factory()->for($unit)->fromIcal()->create(['start_date' => '2026-12-24', 'end_date' => '2026-12-25']);
+        AvailabilityBlock::factory()->for($unit)->create(['start_date' => '2026-12-24', 'end_date' => '2026-12-25']);
 
         $this->expectException(BlockNotAllowedException::class);
         $this->expectExceptionMessage('Unit V1 is already booked or blocked on the night of 24 Dec 2026.');

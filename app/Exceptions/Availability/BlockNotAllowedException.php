@@ -7,7 +7,7 @@ use Carbon\CarbonImmutable;
 use DomainException;
 
 /**
- * An availability block cannot be added or removed. Messages are written for admins.
+ * An availability block cannot be added. Messages are written for admins.
  */
 class BlockNotAllowedException extends DomainException
 {
@@ -26,10 +26,5 @@ class BlockNotAllowedException extends DomainException
     public static function inThePast(): self
     {
         return new self('A block cannot start before today.');
-    }
-
-    public static function managedByFeed(): self
-    {
-        return new self('This block comes from an OTA calendar (iCal) and is removed when that calendar frees the dates.');
     }
 }

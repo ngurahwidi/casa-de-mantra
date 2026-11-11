@@ -2,7 +2,6 @@
 
 namespace App\Data\Readiness;
 
-use App\Models\IcalFeed;
 use Illuminate\Support\Collection;
 
 /**
@@ -16,7 +15,6 @@ final readonly class ReadinessReport
      * @param  list<string>  $issues  one line per failed check, for the verdict banner and the dashboard stat
      * @param  list<string>  $missingProfileFields  blank profile fields, by name
      * @param  list<string>  $inactiveNotificationTemplates  required template codes that are missing or inactive
-     * @param  Collection<int, IcalFeed>  $failingIcalFeeds  import feeds whose latest sync failed
      * @param  Collection<int, RoomTypeReadiness>  $roomTypes  every room type by name
      * @param  int  $incompletePublishedRoomTypes  published room types that fail a mandatory check
      */
@@ -25,7 +23,6 @@ final readonly class ReadinessReport
         public array $issues,
         public array $missingProfileFields,
         public array $inactiveNotificationTemplates,
-        public Collection $failingIcalFeeds,
         public Collection $roomTypes,
         public int $incompletePublishedRoomTypes,
     ) {}

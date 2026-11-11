@@ -6,7 +6,6 @@ use App\Data\Readiness\ReadinessReport;
 use App\Data\Readiness\RoomTypeReadiness;
 use App\Data\Readiness\UnpricedRange;
 use App\Enums\NotificationChannel;
-use App\Models\IcalFeed;
 use App\Models\NotificationTemplate;
 use App\Models\PropertyProfile;
 use App\Models\RatePlan;
@@ -82,21 +81,6 @@ class ReadinessCheck
     }
 
     /**
-     * Import feeds whose latest sync failed. Feeds that have never synced are not failing yet.
-     *
-     * @return Collection<int, IcalFeed>
-     */
-    public function failingIcalFeeds(): Collection
-    {
-        return IcalFeed::query()
-            ->failing()
-            ->with('roomType')
-            ->get()
-            ->sortBy(fn (IcalFeed $feed): array => [$feed->roomType->name, $feed->channel->value])
-            ->values();
-    }
-
-    /**
      * @return Collection<int, RoomTypeReadiness> every room type by name
      */
     private function roomTypes(): Collection
@@ -133,7 +117,6 @@ class ReadinessCheck
     {
         $missingProfileFields = $this->missingProfileFields();
         $inactiveNotificationTemplates = $this->inactiveNotificationTemplates();
-        $failingIcalFeeds = $this->failingIcalFeeds();
         $roomTypes = $this->roomTypes();
 
         $hasCompletePublishedRoomType = $roomTypes->contains(
@@ -155,13 +138,6 @@ class ReadinessCheck
             $issues[] = 'notification templates are missing or inactive';
         }
 
-        if ($failingIcalFeeds->isNotEmpty()) {
-            $issues[] = trans_choice(
-                '{1} One iCal feed is failing to import|{2,*} :count iCal feeds are failing to import',
-                $failingIcalFeeds->count(),
-            );
-        }
-
         if ($incompletePublished->isNotEmpty()) {
             $issues[] = trans_choice(
                 '{1} One published room type is incomplete|{2,*} :count published room types are incomplete',
@@ -176,12 +152,10 @@ class ReadinessCheck
         return new ReadinessReport(
             ready: $missingProfileFields === []
                 && $inactiveNotificationTemplates === []
-                && $failingIcalFeeds->isEmpty()
                 && $hasCompletePublishedRoomType,
             issues: $issues,
             missingProfileFields: $missingProfileFields,
             inactiveNotificationTemplates: $inactiveNotificationTemplates,
-            failingIcalFeeds: $failingIcalFeeds,
             roomTypes: $roomTypes,
             incompletePublishedRoomTypes: $incompletePublished->count(),
         );

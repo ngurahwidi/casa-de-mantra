@@ -19,6 +19,7 @@ Website villa untuk klien hospitality. Tamu mengirim **permintaan reservasi (req
 - **Pajak tidak dipakai**, tetapi tabel `tax_fees` tetap ada dengan kolom `is_active` (default `false`). Service harga hanya membaca baris `is_active = true`. Tabel kosong berarti `tax_total = 0`. Resource Filament untuk `tax_fees` disembunyikan dari navigasi.
 - **Hanya rate plan Non-Refundable** yang dijual. Rate plan tetap disimpan di database, tapi **UI admin menyembunyikan konsep rate plan**; sistem membuatnya otomatis.
 - **Tanpa payment gateway** di fase 1. Pembayaran = transfer manual yang dicatat admin. Tabel `payments` siap untuk gateway nanti.
+- **Tanpa sinkronisasi iCal dengan OTA.** Booking dari OTA diinput admin sebagai reservasi manual (T4.8), dan tanggal reservasi website ditutup manual di OTA (checklist "Blocked on OTA"). Tidak ada tabel `ical_feeds`.
 - **Arsitektur harus siap integrasi PMS/channel manager/booking engine** di masa depan (lihat bagian "Kesiapan integrasi").
 
 ### Stack
@@ -37,7 +38,7 @@ Website villa untuk klien hospitality. Tamu mengirim **permintaan reservasi (req
 - Primary key memakai **UUID** (kecuali `property_profiles`). Di MySQL, gunakan `$table->uuid()` (CHAR(36)) dan trait `HasUuids` bawaan Laravel (UUID v7 yang berurutan, supaya index tetap efisien). Foreign key memakai `foreignUuid()`.
 - **Catatan khusus MySQL:**
     - Kolom `json` tidak boleh punya nilai default literal; beri default lewat model/cast.
-    - Collation default tidak membedakan huruf besar/kecil. Untuk kolom yang harus case-sensitive (`reservations.code`, `ical_feeds.export_token`), gunakan collation `utf8mb4_bin`, atau generate nilai huruf kecil saja dan bandingkan secara konsisten.
+    - Collation default tidak membedakan huruf besar/kecil. Untuk kolom yang harus case-sensitive (mis. `reservations.code`), gunakan collation `utf8mb4_bin`, atau generate nilai huruf kecil saja dan bandingkan secara konsisten.
     - Pastikan `date` dan `datetime` tidak diubah zona waktunya oleh driver; simpan timestamp dalam UTC, tanggal menginap sebagai `date`.
     - Level isolasi default InnoDB adalah REPEATABLE READ. Pencegahan double booking mengandalkan `lockForUpdate()` pada baris `units` di dalam transaksi (lihat T4.5/T4.6), bukan constraint tanggal di database (MySQL tidak punya exclusion constraint).
     - Batasi panjang kolom string yang diindeks agar sesuai batas index (mis. `varchar(191)` atau gunakan prefix bila perlu).
@@ -132,10 +133,10 @@ Buat satu migrasi per kelompok tabel. Semua foreign key dengan index. Tambahkan 
 - `rate_rules`: `rate_plan_id`, `name`, `start_date`, `end_date` (**nullable**), `days_of_week_mask`, `price_per_night`, `min_stay_override` (nullable), `priority`.
 - `tax_fees`: `name`, `type` (percent|fixed), `value`, `is_included_in_price`, `applies_to` (per_night|per_booking|per_guest), `is_active` (default `false`).
 
-### T2.4 Ketersediaan dan iCal
+### T2.4 Ketersediaan
 
-- `ical_feeds`: `room_type_id`, `channel` (booking|expedia|airbnb|other), `direction` (import|export), `url`, `export_token`, `last_synced_at`, `last_status`.
-- `availability_blocks`: `unit_id`, `ical_feed_id` (nullable), `start_date`, `end_date`, `source` (manual|ical|ota_manual), `reason`, `external_uid`. Index pada (`unit_id`, `start_date`, `end_date`).
+- `availability_blocks`: `unit_id`, `start_date`, `end_date`, `source` (manual|ota_manual), `reason`. Index pada (`unit_id`, `start_date`, `end_date`).
+- Tabel `ical_feeds` serta kolom `ical_feed_id` dan `external_uid` sudah dihapus bersama fitur iCal (lihat Fase 8).
 
 ### T2.5 Reservasi dan pembayaran
 
@@ -182,7 +183,7 @@ Semua service punya test. Gunakan data deterministik dan `Carbon::setTestNow`.
 - Definisikan `AvailabilityProvider` (`isAvailable`, `availableUnits`, `blockedDates`).
 - Implementasi `InternalAvailabilityProvider` sesuai "Aturan ketersediaan".
 - Bind di service container.
-- **Test:** rentang bentrok, check-out sama dengan check-in tamu lain (harus boleh), pending tidak memblokir, awaiting_payment/confirmed memblokir, block manual dan iCal memblokir, unit inactive.
+- **Test:** rentang bentrok, check-out sama dengan check-in tamu lain (harus boleh), pending tidak memblokir, awaiting_payment/confirmed memblokir, block manual dan OTA memblokir, unit inactive.
 
 ### T4.2 Pricing service
 
@@ -246,7 +247,7 @@ Semua service punya test. Gunakan data deterministik dan `Carbon::setTestNow`.
 
 ### T5.3 Kalender ketersediaan
 
-- Halaman kalender per unit: tampilkan reservasi (`awaiting_payment`, `confirmed`), block manual, dan block iCal dengan warna berbeda.
+- Halaman kalender per unit: tampilkan reservasi (`awaiting_payment`, `confirmed`), block manual, dan block OTA dengan warna berbeda.
 - Aksi: buat/hapus block manual, ubah harga/min stay untuk rentang tanggal (membuat/memperbarui `rate_rules`).
 
 ### T5.4 Resource reservasi
@@ -261,16 +262,16 @@ Semua service punya test. Gunakan data deterministik dan `Carbon::setTestNow`.
 
 ### T5.5 Dashboard
 
-- Widget: jumlah `pending` (dengan umur tertua), `awaiting_payment` yang hampir expired, check-in/check-out hari ini, reservasi `confirmed` yang belum "Blocked on OTA", status sinkron iCal (feed error), okupansi bulan ini.
+- Widget: jumlah `pending` (dengan umur tertua), `awaiting_payment` yang hampir expired, check-in/check-out hari ini, reservasi `confirmed` yang belum "Blocked on OTA", okupansi bulan ini.
 
 ### T5.6 Resource pendukung
 
-- Resource `IcalFeed` (dengan tombol "Sync now" dan tampilkan `last_status`), `NotificationTemplate`, `NotificationLog` (read-only), `CancellationPolicy`.
+- Resource `NotificationTemplate`, `NotificationLog` (read-only), `CancellationPolicy`.
 - Hak akses: `owner` akses penuh; `staff` tidak boleh mengubah pengaturan sistem, template, atau pengguna (gunakan Filament policy).
 
 ### T5.7 Readiness check
 
-- Halaman/widget "Ready to sell?" yang memeriksa: profil property lengkap, tipe kamar punya kapasitas dan minimal 1 foto, minimal 1 unit aktif, rate plan aktif dengan policy, **setiap malam 365 hari ke depan punya harga**, template notifikasi aktif, feed iCal tidak error. Tampilkan tanggal yang belum berharga.
+- Halaman/widget "Ready to sell?" yang memeriksa: profil property lengkap, tipe kamar punya kapasitas dan minimal 1 foto, minimal 1 unit aktif, rate plan aktif dengan policy, **setiap malam 365 hari ke depan punya harga**, template notifikasi aktif. Tampilkan tanggal yang belum berharga.
 - Tipe kamar tidak boleh dipublikasikan jika pemeriksaan wajib gagal.
 
 ---
@@ -328,21 +329,14 @@ Semua service punya test. Gunakan data deterministik dan `Carbon::setTestNow`.
 
 ---
 
-## Fase 8: Sinkronisasi iCal
+## Fase 8: Sinkronisasi iCal (dihapus)
 
-### T8.1 Import
+Fase ini tidak dikerjakan. Fitur iCal (tabel `ical_feeds`, resource Filament, `SyncIcalFeed`, blok bersumber `ical`) sudah dihapus dari kode. Penomoran fase sengaja dipertahankan.
 
-- `SyncIcalFeed` mengunduh feed (timeout, batas ukuran, validasi URL: hanya http/https, blokir alamat internal untuk mencegah SSRF), parse event, buat/perbarui/hapus `availability_blocks` berdasarkan `external_uid`, dan simpan `last_synced_at` + `last_status`.
-- Event yang hilang dari feed menghapus block terkait.
-- **Test:** feed valid, feed rusak, event dihapus, tanggal all-day dengan DTEND eksklusif.
+Pengganti alur iCal:
 
-### T8.2 Export
-
-- Endpoint `GET /ical/{export_token}.ics` menghasilkan feed dari reservasi `awaiting_payment`/`confirmed` dan block manual untuk tipe kamar terkait. Token tidak mudah ditebak dan bisa diregenerasi dari admin.
-
-### T8.3 Job terjadwal
-
-- Scheduler: sinkron semua feed import tiap 15-30 menit; peringatan ke admin jika sebuah feed gagal berturut-turut.
+- Booking dari OTA: admin menginputnya sebagai reservasi manual (T4.8, aksi **Create manual reservation** di T5.4) dengan source `booking_com`/`expedia` dan nomor booking OTA.
+- Reservasi website: setelah `confirmed`, admin menutup tanggalnya di extranet OTA lalu mencentang **"Blocked on OTA"**. Dashboard (T5.5) menampilkan reservasi yang belum ditutup.
 
 ---
 
@@ -353,7 +347,6 @@ Semua service punya test. Gunakan data deterministik dan `Carbon::setTestNow`.
 Daftarkan di `routes/console.php`:
 
 - `ExpireStaleReservations` (tiap 5-15 menit).
-- Sinkron iCal (lihat T8.3).
 - `CompleteReservation` untuk yang sudah check-out (harian).
 - Pengingat (lihat T7.2).
 - Pemroses `outbox_events` (menandai terproses; di fase 1 belum ada konsumen eksternal).
@@ -389,7 +382,7 @@ Daftarkan di `routes/console.php`:
 
 ### T11.2 UAT bersama klien
 
-- Skenario: permintaan masuk, tolak, approve, bayar, expired, input booking OTA manual, blok tanggal manual, ubah harga Natal, sinkron iCal.
+- Skenario: permintaan masuk, tolak, approve, bayar, expired, input booking OTA manual, blok tanggal manual, ubah harga Natal, tandai "Blocked on OTA".
 - Catat revisi dan prioritaskan.
 
 ---
@@ -424,7 +417,7 @@ Daftarkan di `routes/console.php`:
 - [ ] Readiness check di admin lolos, harga terisi 365 hari ke depan.
 - [ ] Email uji terkirim ke inbox (bukan spam); SPF/DKIM/DMARC dikonfigurasi.
 - [ ] Alur booking dicoba dengan data nyata oleh klien.
-- [ ] Feed iCal OTA terpasang di kedua arah dan tervalidasi.
+- [ ] Admin memahami SOP OTA: input booking OTA sebagai reservasi manual dan menutup tanggal reservasi website di OTA ("Blocked on OTA").
 - [ ] Google Search Console + sitemap dikirim, analytics aktif.
 - [ ] Halaman kebijakan (pembatalan, privasi, syarat) final dan disetujui klien.
 - [ ] Akun admin staf dibuat, pelatihan singkat dan panduan SOP harian diberikan.
