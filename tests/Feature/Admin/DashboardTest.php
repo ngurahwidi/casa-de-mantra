@@ -2,7 +2,10 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\ReservationPaymentStatus;
+use App\Enums\ReservationStatus;
 use App\Filament\Resources\Reservations\Pages\ListReservations;
+use App\Filament\Widgets\OutstandingBalancesWidget;
 use App\Filament\Widgets\PaymentsDueWidget;
 use App\Filament\Widgets\ReservationStatsOverview;
 use App\Filament\Widgets\TodaysStaysWidget;
@@ -46,6 +49,7 @@ class DashboardTest extends TestCase
         $this->assertContains(ReservationStatsOverview::class, $widgets);
         $this->assertContains(TodaysStaysWidget::class, $widgets);
         $this->assertContains(PaymentsDueWidget::class, $widgets);
+        $this->assertContains(OutstandingBalancesWidget::class, $widgets);
     }
 
     public function test_stats_show_the_age_of_the_oldest_pending_request(): void
@@ -120,5 +124,17 @@ class DashboardTest extends TestCase
         Livewire::test(PaymentsDueWidget::class)
             ->assertCanSeeTableRecords([$due])
             ->assertCanNotSeeTableRecords([$later]);
+    }
+
+    public function test_outstanding_balances_widget_lists_completed_stays_with_a_balance_to_collect(): void
+    {
+        $owing = Reservation::factory()->create(['status' => ReservationStatus::Completed, 'payment_status' => ReservationPaymentStatus::Deposit]);
+        Payment::factory()->for($owing)->paid()->create(['amount' => 1500000]);
+        $settled = Reservation::factory()->create(['status' => ReservationStatus::Completed, 'payment_status' => ReservationPaymentStatus::Paid]);
+
+        Livewire::test(OutstandingBalancesWidget::class)
+            ->assertCanSeeTableRecords([$owing])
+            ->assertCanNotSeeTableRecords([$settled])
+            ->assertTableColumnStateSet('balance', '3000000.00', $owing);
     }
 }

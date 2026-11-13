@@ -74,7 +74,6 @@ class RecordPaymentTest extends TestCase
             ReservationStatus::Pending,
             ReservationStatus::Rejected,
             ReservationStatus::Cancelled,
-            ReservationStatus::Completed,
         ])->mapWithKeys(fn (ReservationStatus $status) => [$status->value => [$status]])->all();
     }
 
@@ -236,6 +235,24 @@ class RecordPaymentTest extends TestCase
         $this->assertSame(1, ReservationStatusLog::query()->count());
     }
 
+    public function test_balance_settled_after_the_stay_is_recorded_on_a_completed_reservation(): void
+    {
+        PropertyProfile::current()->update(['confirm_on_deposit' => true]);
+        $reservation = $this->awaitingPayment();
+        $this->record->handle($reservation, $this->admin, $this->payment('1500000'));
+        $reservation->update(['status' => ReservationStatus::Completed]);
+
+        $result = $this->record->handle($reservation, $this->admin, $this->payment('3000000'));
+
+        $this->assertNull($result->confirmationFailure);
+        $fresh = $reservation->fresh();
+        $this->assertSame(ReservationStatus::Completed, $fresh->status);
+        $this->assertSame(ReservationPaymentStatus::Paid, $fresh->payment_status);
+        $this->assertSame(2, Payment::query()->where('status', PaymentStatus::Paid)->count());
+        // Only the confirmation by the deposit; the completed stay keeps its status.
+        $this->assertSame(1, ReservationStatusLog::query()->count());
+    }
+
     public function test_payment_after_expiry_is_rejected_until_the_reservation_is_reactivated(): void
     {
         $reservation = $this->awaitingPayment();
@@ -259,14 +276,14 @@ class RecordPaymentTest extends TestCase
     }
 
     #[DataProvider('notPayable')]
-    public function test_only_reservations_awaiting_payment_or_confirmed_take_payments(ReservationStatus $status): void
+    public function test_only_reservations_awaiting_payment_confirmed_or_completed_take_payments(ReservationStatus $status): void
     {
         $reservation = $this->awaitingPayment();
         $reservation->update(['status' => $status]);
 
         $this->assertNotRecorded(
             $reservation,
-            "Payments can only be recorded for reservations awaiting payment or confirmed; this one is {$status->value}.",
+            "Payments can only be recorded for reservations awaiting payment, confirmed or completed; this one is {$status->value}.",
             $status,
         );
     }

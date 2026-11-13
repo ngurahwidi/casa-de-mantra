@@ -34,7 +34,7 @@ class SubmitPaymentProof
     public function handle(Reservation $reservation, UploadedFile $proof): Payment
     {
         if ($reservation->status !== ReservationStatus::AwaitingPayment) {
-            throw PaymentNotAcceptedException::notPayable($reservation->status);
+            throw PaymentNotAcceptedException::proofNotAccepted($reservation->status);
         }
 
         $path = $proof->store(
@@ -51,7 +51,7 @@ class SubmitPaymentProof
                 $locked = Reservation::query()->whereKey($reservation->getKey())->lockForUpdate()->firstOrFail();
 
                 if ($locked->status !== ReservationStatus::AwaitingPayment) {
-                    throw PaymentNotAcceptedException::notPayable($locked->status);
+                    throw PaymentNotAcceptedException::proofNotAccepted($locked->status);
                 }
 
                 $amount = self::outstandingAmount($locked);

@@ -215,7 +215,8 @@ Semua service punya test. Gunakan data deterministik dan `Carbon::setTestNow`.
 - `RecordPayment`: buat `payments` (status `paid`), isi `paid_at`, `proof_url`, `verified_by`; hitung `payment_status` (`deposit` jika total pembayaran < total, `paid` jika >=). Jika admin memilih bukti transfer tamu (payment `pending` dari T6.4), baris itu yang diubah menjadi `paid` dan tetap memakai file buktinya, bukan membuat baris baru. Saat `payment_status` menjadi `paid`, bukti lain yang masih `pending` ditutup menjadi `expired`.
 - `RejectPaymentProof`: bukti transfer `pending` yang tidak cocok dengan pembayaran diterima diubah menjadi `failed`, isi `verified_by`, file tetap disimpan. Status reservasi tidak berubah dan tamu dapat mengunggah bukti lain.
 - `ConfirmReservation`: dalam transaksi, validasi ulang ketersediaan, transisi ke `confirmed`, isi `confirmed_at`. Jika `payment_status = paid`, otomatis dipanggil setelah `RecordPayment`; kebijakan untuk DP (confirm atau tidak) dibuat sebagai pengaturan di `property_profiles` (`confirm_on_deposit`, default `false`).
-- **Test:** pembayaran penuh, kurang, lebih, pembayaran setelah expired ditolak (admin harus `ReactivateReservation` terlebih dahulu), pembayaran dari bukti tamu (tidak menambah baris, file tetap), penutupan bukti lain saat lunas, penolakan bukti, bukti yang sudah ditangani atau milik reservasi lain ditolak.
+- `RecordPayment` menerima pembayaran untuk reservasi `awaiting_payment`, `confirmed`, dan `completed`. Tamu boleh melunasi saat check-out, dan admin bisa saja baru mencatatnya setelah reservasi otomatis `completed` (T9.1); pembayaran itu hanya mengubah `payment_status`, status reservasi tetap `completed`.
+- **Test:** pembayaran penuh, kurang, lebih, pelunasan pada reservasi `completed`, pembayaran setelah expired ditolak (admin harus `ReactivateReservation` terlebih dahulu), pembayaran dari bukti tamu (tidak menambah baris, file tetap), penutupan bukti lain saat lunas, penolakan bukti, bukti yang sudah ditangani atau milik reservasi lain ditolak.
 
 ### T4.7 Cancel, expire, reactivate, complete
 
@@ -262,7 +263,7 @@ Semua service punya test. Gunakan data deterministik dan `Carbon::setTestNow`.
 
 ### T5.5 Dashboard
 
-- Widget: jumlah `pending` (dengan umur tertua), `awaiting_payment` yang hampir expired, check-in/check-out hari ini, reservasi `confirmed` yang belum "Blocked on OTA", okupansi bulan ini.
+- Widget: jumlah `pending` (dengan umur tertua), `awaiting_payment` yang hampir expired, check-in/check-out hari ini, reservasi `confirmed` yang belum "Blocked on OTA", okupansi bulan ini, reservasi `completed` yang belum lunas (semua sumber, dengan sisa tagihan).
 
 ### T5.6 Resource pendukung
 

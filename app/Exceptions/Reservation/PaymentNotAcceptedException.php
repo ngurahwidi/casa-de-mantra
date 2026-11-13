@@ -16,7 +16,12 @@ class PaymentNotAcceptedException extends ReservationException
 
     public static function notPayable(ReservationStatus $status): self
     {
-        return new self("Payments can only be recorded for reservations awaiting payment or confirmed; this one is {$status->value}.");
+        return new self("Payments can only be recorded for reservations awaiting payment, confirmed or completed; this one is {$status->value}.");
+    }
+
+    public static function proofNotAccepted(ReservationStatus $status): self
+    {
+        return new self("Transfer proofs can only be uploaded while a reservation awaits payment; this one is {$status->value}.");
     }
 
     public static function proofNoLongerPending(): self

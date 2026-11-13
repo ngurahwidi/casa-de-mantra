@@ -4,6 +4,7 @@ namespace Tests\Feature\Services;
 
 use App\Enums\PaymentStatus;
 use App\Enums\ReservationPaymentStatus;
+use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Enums\UnitStatus;
 use App\Models\Payment;
@@ -114,6 +115,21 @@ class DashboardOverviewTest extends TestCase
         $this->assertSame([$inHouse->id, $upcoming->id], $notBlocked);
     }
 
+    public function test_outstanding_balances_are_completed_stays_not_fully_paid_with_their_balance(): void
+    {
+        $deposit = $this->completedStay(ReservationPaymentStatus::Deposit, ['check_in' => '2026-11-17', 'check_out' => '2026-11-20']);
+        Payment::factory()->for($deposit)->paid()->create(['amount' => '1500000.50']);
+        Payment::factory()->for($deposit)->create(['amount' => 3000000]);
+        $unpaidOta = $this->completedStay(ReservationPaymentStatus::Unpaid, ['check_in' => '2026-11-07', 'check_out' => '2026-11-10', 'source' => ReservationSource::BookingCom]);
+        $this->completedStay(ReservationPaymentStatus::Paid);
+        Reservation::factory()->confirmed()->create(['payment_status' => ReservationPaymentStatus::Deposit]);
+
+        $outstanding = app(DashboardOverview::class)->outstandingBalances()->get();
+
+        $this->assertSame([$unpaidOta->id, $deposit->id], $outstanding->modelKeys());
+        $this->assertSame(['4500000.00', '2999999.50'], $outstanding->pluck('balance')->map(fn (mixed $balance): string => (string) $balance)->all());
+    }
+
     public function test_occupancy_counts_sold_nights_of_this_month_on_active_units(): void
     {
         [$unit] = Unit::factory()->count(2)->create();
@@ -138,6 +154,18 @@ class DashboardOverviewTest extends TestCase
 
         $this->assertSame(0, $occupancy->availableNights);
         $this->assertNull($occupancy->percentage());
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    private function completedStay(ReservationPaymentStatus $paymentStatus, array $attributes = []): Reservation
+    {
+        return Reservation::factory()->create([
+            'status' => ReservationStatus::Completed,
+            'payment_status' => $paymentStatus,
+            ...$attributes,
+        ]);
     }
 
     /**

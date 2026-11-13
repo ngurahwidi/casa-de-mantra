@@ -20,9 +20,11 @@ use Illuminate\Support\Facades\DB;
 /**
  * An admin records a payment received for a reservation, e.g. a bank transfer.
  *
- * Payments are accepted while the reservation awaits payment, and once confirmed (the balance
- * after a deposit). An expired reservation has released its dates and must be reactivated
- * first. The deadline itself is not checked here: until ExpireStaleReservations moves it to
+ * Payments are accepted while the reservation awaits payment, once confirmed (the balance after
+ * a deposit), and after the stay is completed: the property lets guests settle the balance at
+ * check-out, and the admin may only record it after CompleteReservation has run. A payment on a
+ * completed stay changes its payment_status only, never its status. An expired reservation has
+ * released its dates and must be reactivated first. The deadline itself is not checked here: until ExpireStaleReservations moves it to
  * expired, an awaiting_payment reservation still holds its dates.
  *
  * paid_at is when the money was received, so it cannot be later than now.
@@ -41,6 +43,13 @@ use Illuminate\Support\Facades\DB;
  */
 class RecordPayment
 {
+    /** @var list<ReservationStatus> */
+    public const PAYABLE_STATUSES = [
+        ReservationStatus::AwaitingPayment,
+        ReservationStatus::Confirmed,
+        ReservationStatus::Completed,
+    ];
+
     public function __construct(private readonly ConfirmReservation $confirm) {}
 
     /**
@@ -62,7 +71,7 @@ class RecordPayment
                 throw PaymentNotAcceptedException::expired();
             }
 
-            if (! in_array($locked->status, [ReservationStatus::AwaitingPayment, ReservationStatus::Confirmed], true)) {
+            if (! in_array($locked->status, self::PAYABLE_STATUSES, true)) {
                 throw PaymentNotAcceptedException::notPayable($locked->status);
             }
 

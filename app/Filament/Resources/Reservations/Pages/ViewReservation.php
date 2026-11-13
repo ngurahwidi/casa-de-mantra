@@ -91,9 +91,11 @@ class ViewReservation extends ViewRecord
             Action::make('recordPayment')
                 ->label('Record payment')
                 ->icon(Heroicon::OutlinedBanknotes)
-                // Confirmed reservations take the balance after a deposit, e.g. one entered by hand unpaid.
+                // Confirmed and completed reservations take the balance after a deposit, e.g. one
+                // entered by hand unpaid or settled by the guest at check-out.
                 ->visible(fn (): bool => $this->hasStatus(ReservationStatus::AwaitingPayment)
-                    || ($this->hasStatus(ReservationStatus::Confirmed) && $this->reservation()->payment_status !== ReservationPaymentStatus::Paid))
+                    || (in_array($this->reservation()->status, RecordPayment::PAYABLE_STATUSES, true)
+                        && $this->reservation()->payment_status !== ReservationPaymentStatus::Paid))
                 ->modalDescription(fn (): string => 'Total '.$this->reservation()->currency.' '.number_format((float) $this->reservation()->total, 2).'.')
                 ->fillForm(fn (): array => [
                     'guest_proof' => array_key_first($this->pendingProofOptions()),

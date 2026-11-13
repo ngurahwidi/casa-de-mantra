@@ -132,7 +132,7 @@ class ReservationResourceTest extends TestCase
             'pending' => [ReservationStatus::Pending, ['approve', 'reject', 'cancel']],
             'awaiting payment' => [ReservationStatus::AwaitingPayment, ['recordPayment', 'otaBlocked', 'cancel']],
             'confirmed, paid, before check-out' => [ReservationStatus::Confirmed, ['otaBlocked', 'cancel']],
-            'completed' => [ReservationStatus::Completed, []],
+            'completed, paid' => [ReservationStatus::Completed, []],
             'rejected' => [ReservationStatus::Rejected, []],
             'cancelled' => [ReservationStatus::Cancelled, []],
             'expired' => [ReservationStatus::Expired, ['reactivate']],
@@ -157,6 +157,21 @@ class ReservationResourceTest extends TestCase
         $reservation = $this->reservation(ReservationStatus::Confirmed, ['payment_status' => ReservationPaymentStatus::Unpaid]);
 
         $this->page($reservation)->assertActionVisible('recordPayment');
+    }
+
+    public function test_balance_settled_at_check_out_can_be_recorded_after_the_stay_is_completed(): void
+    {
+        $reservation = $this->reservation(ReservationStatus::Completed, ['payment_status' => ReservationPaymentStatus::Deposit]);
+        Payment::factory()->for($reservation)->paid()->create(['amount' => 1500000]);
+
+        $this->page($reservation)
+            ->callAction('recordPayment', ['amount' => '3000000', 'method' => PaymentMethod::Cash->value])
+            ->assertHasNoFormErrors()
+            ->assertNotified('Payment recorded');
+
+        $reservation->refresh();
+        $this->assertSame(ReservationStatus::Completed, $reservation->status);
+        $this->assertSame(ReservationPaymentStatus::Paid, $reservation->payment_status);
     }
 
     public function test_confirmed_stay_can_be_completed_once_checked_out(): void
@@ -503,6 +518,8 @@ class ReservationResourceTest extends TestCase
         $factory = match ($status) {
             ReservationStatus::AwaitingPayment => $factory->awaitingPayment(),
             ReservationStatus::Confirmed => $factory->confirmed(),
+            // A stay is completed from confirmed, so it starts out paid like a confirmed one.
+            ReservationStatus::Completed => $factory->confirmed()->state(['status' => $status]),
             default => $factory->state(['status' => $status]),
         };
         $reservation = $factory->create($attributes);

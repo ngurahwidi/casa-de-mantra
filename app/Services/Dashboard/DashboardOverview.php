@@ -3,8 +3,10 @@
 namespace App\Services\Dashboard;
 
 use App\Data\Dashboard\Occupancy;
+use App\Enums\PaymentStatus;
 use App\Enums\ReservationPaymentStatus;
 use App\Enums\ReservationStatus;
+use App\Models\Payment;
 use App\Models\PropertyProfile;
 use App\Models\Reservation;
 use App\Models\ReservationNight;
@@ -110,6 +112,29 @@ class DashboardOverview
             ->whereNull('ota_blocked_at')
             ->where('check_out', '>', $this->today())
             ->orderBy('check_in');
+    }
+
+    /**
+     * Completed stays that are not paid in full, from every source, e.g. a guest who was to settle
+     * the balance at check-out. Each comes with a `balance` attribute: the total less its paid
+     * payments, worked out in SQL so the decimals stay exact.
+     *
+     * @return Builder<Reservation> longest outstanding first
+     */
+    public function outstandingBalances(): Builder
+    {
+        $balance = Payment::query()
+            ->selectRaw('reservations.total - COALESCE(SUM(payments.amount), 0)')
+            ->whereColumn('payments.reservation_id', 'reservations.id')
+            ->where('payments.status', PaymentStatus::Paid);
+
+        return Reservation::query()
+            ->select('reservations.*')
+            ->selectSub($balance, 'balance')
+            ->where('status', ReservationStatus::Completed)
+            ->whereIn('payment_status', [ReservationPaymentStatus::Unpaid, ReservationPaymentStatus::Deposit])
+            ->orderBy('check_out')
+            ->orderBy('code');
     }
 
     /**
