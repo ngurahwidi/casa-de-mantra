@@ -1,0 +1,156 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PHP_VERSION: '8.5'
+  PHP_EXTENSIONS: ctype, dom, exif, fileinfo, gd, intl, mbstring, pcntl, pdo_mysql, zip
+  NODE_VERSION: '22'
+
+jobs:
+  quality:
+    name: Lint and static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: ${{ env.PHP_EXTENSIONS }}
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Lint
+        run: composer lint -- --test
+
+      - name: Analyse
+        run: composer analyse
+
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -ppassword"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DB_HOST: 127.0.0.1
+      DB_USERNAME: root
+      DB_PASSWORD: password
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: ${{ env.PHP_EXTENSIONS }}
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: |
+          composer install --no-interaction --no-progress --prefer-dist
+          npm ci
+
+      - name: Build assets
+        run: npm run build
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Test
+        run: composer test
+
+  browser:
+    name: Browser tests
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -ppassword"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: ${{ env.PHP_EXTENSIONS }}
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: |
+          composer install --no-interaction --no-progress --prefer-dist
+          npm ci
+
+      - name: Build assets
+        run: npm run build
+
+      # Dusk swaps .env.dusk.local in for .env, so it is rewritten for this runner: the web
+      # server and the tests both use the `testing` database on the MySQL service.
+      - name: Prepare environment
+        run: |
+          cp .env.dusk.local .env
+          sed -i \
+            -e 's|^APP_URL=.*|APP_URL=http://127.0.0.1:8000|' \
+            -e 's|^DB_HOST=.*|DB_HOST=127.0.0.1|' \
+            -e 's|^DB_USERNAME=.*|DB_USERNAME=root|' \
+            .env
+          php artisan key:generate
+          cp .env .env.dusk.local
+
+      # tests/DuskTestCase.php starts ChromeDriver itself outside Sail.
+      - name: Install ChromeDriver
+        run: php artisan dusk:chrome-driver --detect
+
+      - name: Start the web server
+        run: php artisan serve --no-reload --host=127.0.0.1 --port=8000 &
+
+      - name: Run browser tests
+        run: php artisan dusk
+
+      - name: Upload screenshots and console logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dusk-output
+          path: |
+            tests/Browser/screenshots
+            tests/Browser/console

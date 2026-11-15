@@ -11,35 +11,19 @@ use App\Models\ReservationRoom;
 use App\Models\RoomType;
 use App\Models\Unit;
 use App\Models\User;
-use Illuminate\Contracts\Process\InvokedProcess;
-use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Process;
+use Tests\Support\RunsConcurrentReservationActions;
 use Tests\TestCase;
 
 /**
  * Two admins approve overlapping requests for the only unit at the same moment.
  *
- * The second approval runs in another PHP process with its own connection, so the data has
- * to be committed: this class truncates instead of wrapping each test in a transaction, and
- * empties the tables again afterwards for the tests that follow.
+ * The second approval runs in another PHP process with its own connection (see
+ * RunsConcurrentReservationActions).
  */
 class ApproveReservationConcurrencyTest extends TestCase
 {
-    use DatabaseTruncation;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->beforeApplicationDestroyed(function (): void {
-            while (DB::transactionLevel() > 0) {
-                DB::rollBack();
-            }
-
-            $this->truncateTablesForAllConnections();
-        });
-    }
+    use RunsConcurrentReservationActions;
 
     public function test_only_one_of_two_concurrent_approvals_for_the_same_dates_succeeds(): void
     {
@@ -65,24 +49,10 @@ class ApproveReservationConcurrencyTest extends TestCase
         $this->app->make(ApproveReservation::class)->handle($first, $admin);
 
         // ...while the second one starts and has to wait for the unit lock.
-        $process = Process::timeout(60)
-            ->env(['DB_DATABASE' => DB::connection()->getDatabaseName()])
-            ->start([PHP_BINARY, base_path('tests/Support/approve-reservation.php'), $second->id, (string) $admin->id]);
+        $process = $this->startSupportScript('approve-reservation.php', [$second->id, (string) $admin->id]);
+        $output = $this->commitOnceWaitingForUnitLock($process);
 
-        try {
-            $this->waitUntilWaitingForUnitLock($process);
-
-            DB::commit();
-
-            $result = $process->wait();
-        } finally {
-            if ($process->running()) {
-                $process->signal(SIGKILL);
-            }
-        }
-
-        $this->assertTrue($result->successful(), $result->output().$result->errorOutput());
-        $this->assertSame('not_available', $result->output());
+        $this->assertSame('not_available', $output);
 
         $this->assertSame(ReservationStatus::AwaitingPayment, $first->fresh()->status);
         $this->assertSame($unit->id, ReservationRoom::query()->whereBelongsTo($first)->value('unit_id'));
@@ -93,35 +63,5 @@ class ApproveReservationConcurrencyTest extends TestCase
 
         $this->assertDatabaseCount('reservation_status_logs', 1);
         $this->assertDatabaseCount('outbox_events', 1);
-    }
-
-    /**
-     * Waits until the other process has sent its locking read on `units`, which cannot return
-     * while this test's transaction holds the lock.
-     */
-    private function waitUntilWaitingForUnitLock(InvokedProcess $process): void
-    {
-        $deadline = microtime(true) + 15;
-
-        while (microtime(true) < $deadline) {
-            if (! $process->running()) {
-                $this->fail('The other approval ended without waiting for the lock: '.$process->output().$process->errorOutput());
-            }
-
-            // Without the PROCESS privilege this lists only threads of the same user, which is enough.
-            $waiting = DB::table('information_schema.processlist')
-                ->where('id', '!=', DB::raw('connection_id()'))
-                ->where('db', DB::connection()->getDatabaseName())
-                ->where('info', 'like', '%`units`%for update%')
-                ->exists();
-
-            if ($waiting) {
-                return;
-            }
-
-            usleep(20_000);
-        }
-
-        $this->fail('The other approval never reached the unit lock.');
     }
 }
