@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Reservations\Tables;
 
 use App\Enums\ReservationPaymentStatus;
-use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Filament\Resources\Reservations\ReservationResource;
 use App\Models\Reservation;
@@ -24,7 +23,7 @@ class ReservationsTable
     {
         return $table
             ->modifyQueryUsing(fn (Builder $query): Builder => $query
-                ->with(['reservationRooms.roomType', 'reservationRooms.unit'])
+                ->with(['source', 'reservationRooms.roomType', 'reservationRooms.unit'])
                 ->withExists('pendingPaymentProofs'))
             ->defaultSort('created_at', 'desc')
             ->columns([
@@ -62,8 +61,8 @@ class ReservationsTable
                     ->formatStateUsing(fn (ReservationPaymentStatus $state): string => $state->label())
                     ->color(fn (ReservationPaymentStatus $state): string => ReservationResource::paymentStatusColor($state))
                     ->description(fn (Reservation $record): ?string => $record->getAttribute('pending_payment_proofs_exists') ? 'Proof to verify' : null),
-                TextColumn::make('source')
-                    ->formatStateUsing(fn (ReservationSource $state): string => $state->label())
+                TextColumn::make('source.name')
+                    ->label('Source')
                     ->toggleable(),
                 IconColumn::make('ota_blocked_at')
                     ->label('Blocked on OTA')
@@ -82,8 +81,9 @@ class ReservationsTable
                     ->multiple()
                     ->options(self::labels(ReservationStatus::cases())),
                 SelectFilter::make('source')
+                    ->relationship('source', 'name')
                     ->multiple()
-                    ->options(self::labels(ReservationSource::cases())),
+                    ->preload(),
                 TernaryFilter::make('ota_blocked_at')
                     ->label('Blocked on OTA')
                     ->nullable(),
@@ -127,13 +127,13 @@ class ReservationsTable
     }
 
     /**
-     * @param  list<ReservationStatus|ReservationSource>  $cases
+     * @param  list<ReservationStatus>  $cases
      * @return array<string, string>
      */
     private static function labels(array $cases): array
     {
         return collect($cases)
-            ->mapWithKeys(fn (ReservationStatus|ReservationSource $case): array => [$case->value => $case->label()])
+            ->mapWithKeys(fn (ReservationStatus $case): array => [$case->value => $case->label()])
             ->all();
     }
 }

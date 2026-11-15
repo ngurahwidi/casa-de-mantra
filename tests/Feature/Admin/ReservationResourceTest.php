@@ -6,7 +6,6 @@ use App\Actions\Pricing\SetBasePrice;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\ReservationPaymentStatus;
-use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Filament\Resources\Reservations\Pages\ListReservations;
 use App\Filament\Resources\Reservations\Pages\ViewReservation;
@@ -18,10 +17,12 @@ use App\Models\Payment;
 use App\Models\PropertyProfile;
 use App\Models\Reservation;
 use App\Models\ReservationRoom;
+use App\Models\ReservationSource;
 use App\Models\ReservationStatusLog;
 use App\Models\RoomType;
 use App\Models\Unit;
 use App\Models\User;
+use Closure;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -453,9 +454,11 @@ class ReservationResourceTest extends TestCase
         Unit::factory()->for($roomType)->create();
         app(SetBasePrice::class)->handle($roomType, '1500000');
 
+        $agoda = ReservationSource::factory()->create(['name' => 'Agoda']);
+
         Livewire::test(ListReservations::class)
             ->callAction('createManualReservation', [
-                'source' => ReservationSource::BookingCom->value,
+                'reservation_source_id' => $agoda->id,
                 'external_id' => 'BK-4455',
                 'room_type_id' => $roomType->id,
                 'check_in' => '2026-12-10',
@@ -473,8 +476,9 @@ class ReservationResourceTest extends TestCase
 
         $reservation = Reservation::query()->sole();
         $this->assertSame(ReservationStatus::Confirmed, $reservation->status);
-        $this->assertSame(ReservationSource::BookingCom, $reservation->source);
+        $this->assertTrue($reservation->source->is($agoda));
         $this->assertSame('BK-4455', $reservation->external_id);
+        $this->assertSame('agoda', $reservation->external_source);
         $this->assertSame('3200000.00', $reservation->total);
         $this->assertSame('Cara Diaz', $reservation->guest_full_name);
     }
@@ -486,7 +490,7 @@ class ReservationResourceTest extends TestCase
 
         Livewire::test(ListReservations::class)
             ->callAction('createManualReservation', [
-                'source' => ReservationSource::Manual->value,
+                'reservation_source_id' => ReservationSource::factory()->direct()->create()->id,
                 'room_type_id' => $roomType->id,
                 'check_in' => '2026-12-10',
                 'check_out' => '2026-12-12',
@@ -499,6 +503,57 @@ class ReservationResourceTest extends TestCase
             ->assertNotified('Reservation not created');
 
         $this->assertSame(0, Reservation::query()->count());
+    }
+
+    /**
+     * @return array<string, array{Closure(): ReservationSource}>
+     */
+    public static function sourcesNotOffered(): array
+    {
+        return [
+            'inactive' => [fn (): ReservationSource => ReservationSource::factory()->inactive()->create()],
+            'website' => [fn (): ReservationSource => ReservationSource::website()],
+        ];
+    }
+
+    /**
+     * @param  Closure(): ReservationSource  $createSource
+     */
+    #[DataProvider('sourcesNotOffered')]
+    public function test_manual_reservation_cannot_have_an_inactive_or_website_source(Closure $createSource): void
+    {
+        $roomType = RoomType::factory()->create();
+        Unit::factory()->for($roomType)->create();
+        app(SetBasePrice::class)->handle($roomType, '1500000');
+
+        Livewire::test(ListReservations::class)
+            ->callAction('createManualReservation', [
+                'reservation_source_id' => $createSource()->id,
+                'room_type_id' => $roomType->id,
+                'check_in' => '2026-12-10',
+                'check_out' => '2026-12-12',
+                'adults' => 2,
+                'children' => 0,
+                'full_name' => 'Cara Diaz',
+                'email' => 'cara@example.com',
+                'phone' => '+44 7700 900000',
+            ])
+            ->assertHasFormErrors(['reservation_source_id']);
+
+        $this->assertSame(0, Reservation::query()->count());
+    }
+
+    public function test_booking_number_is_asked_only_for_an_ota_source(): void
+    {
+        $ota = ReservationSource::factory()->create();
+        $direct = ReservationSource::factory()->direct()->create();
+
+        Livewire::test(ListReservations::class)
+            ->mountAction('createManualReservation')
+            ->fillForm(['reservation_source_id' => $ota->id])
+            ->assertFormFieldVisible('external_id')
+            ->fillForm(['reservation_source_id' => $direct->id])
+            ->assertFormFieldHidden('external_id');
     }
 
     private function page(Reservation $reservation): Testable

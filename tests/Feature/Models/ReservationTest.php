@@ -5,13 +5,13 @@ namespace Tests\Feature\Models;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\ReservationPaymentStatus;
-use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Models\Guest;
 use App\Models\Payment;
 use App\Models\Reservation;
 use App\Models\ReservationNight;
 use App\Models\ReservationRoom;
+use App\Models\ReservationSource;
 use App\Models\ReservationStatusLog;
 use App\Models\Unit;
 use App\Models\User;
@@ -42,6 +42,7 @@ class ReservationTest extends TestCase
         $reservation = Reservation::create([
             'code' => 'abc12345',
             'guest_id' => $guest->id,
+            'reservation_source_id' => ReservationSource::website()->id,
             'guest_full_name' => 'Jane Doe',
             'guest_email' => 'jane@example.com',
             'guest_phone' => '+62 812 3456 7890',
@@ -55,7 +56,7 @@ class ReservationTest extends TestCase
         ])->fresh();
 
         $this->assertSame(ReservationStatus::Pending, $reservation->status);
-        $this->assertSame(ReservationSource::DirectWeb, $reservation->source);
+        $this->assertTrue($reservation->source->is(ReservationSource::website()));
         $this->assertSame(ReservationPaymentStatus::Unpaid, $reservation->payment_status);
         $this->assertSame(0, $reservation->children);
         $this->assertSame('0.00', $reservation->tax_total);
@@ -225,7 +226,7 @@ class ReservationTest extends TestCase
 
         $reservation = Reservation::factory()->create();
         $this->assertThrowsQuery(fn () => DB::table('reservations')->where('id', $reservation->id)->update(['status' => 'approved']));
-        $this->assertThrowsQuery(fn () => DB::table('reservations')->where('id', $reservation->id)->update(['source' => 'agoda']));
+        $this->assertThrowsQuery(fn () => DB::table('reservations')->where('id', $reservation->id)->update(['reservation_source_id' => (string) Str::uuid7()]));
         $this->assertThrowsQuery(fn () => DB::table('reservations')->where('id', $reservation->id)->update(['payment_status' => 'partial']));
     }
 
@@ -234,9 +235,6 @@ class ReservationTest extends TestCase
         foreach (ReservationStatus::cases() as $status) {
             $this->assertSame($status, Reservation::factory()->create(['status' => $status])->fresh()->status);
             $this->assertSame($status, ReservationStatusLog::factory()->create(['from_status' => $status, 'to_status' => $status])->fresh()->to_status);
-        }
-        foreach (ReservationSource::cases() as $source) {
-            $this->assertSame($source, Reservation::factory()->create(['source' => $source])->fresh()->source);
         }
         foreach (ReservationPaymentStatus::cases() as $paymentStatus) {
             $this->assertSame($paymentStatus, Reservation::factory()->create(['payment_status' => $paymentStatus])->fresh()->payment_status);

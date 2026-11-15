@@ -3,7 +3,6 @@
 namespace Tests\Feature\Services;
 
 use App\Enums\NotificationLogStatus;
-use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Events\ReservationStatusChanged;
 use App\Jobs\SendReservationNotification;
@@ -14,6 +13,7 @@ use App\Models\NotificationLog;
 use App\Models\NotificationTemplate;
 use App\Models\PropertyProfile;
 use App\Models\Reservation;
+use App\Models\ReservationSource;
 use App\Models\ReservationStatusLog;
 use App\Services\Reservation\ReservationStateMachine;
 use Database\Seeders\NotificationTemplateSeeder;
@@ -196,7 +196,7 @@ class ReservationNotifierTest extends TestCase
     public function test_a_booking_entered_by_an_admin_sends_no_email(): void
     {
         $this->seedNotificationSetup();
-        $reservation = $this->reservation(ReservationStatus::Confirmed, ReservationSource::BookingCom);
+        $reservation = $this->reservation(ReservationStatus::Confirmed, ReservationSource::factory()->create());
         Mail::fake();
 
         app(ReservationStateMachine::class)->recordCreated($reservation);
@@ -336,11 +336,11 @@ class ReservationNotifierTest extends TestCase
 
     private function reservation(
         ReservationStatus $status = ReservationStatus::Pending,
-        ReservationSource $source = ReservationSource::DirectWeb,
+        ?ReservationSource $source = null,
     ): Reservation {
         return Reservation::factory()->create([
             'status' => $status,
-            'source' => $source,
+            'reservation_source_id' => $source ?? ReservationSource::website(),
             'guest_email' => self::GUEST_EMAIL,
         ]);
     }

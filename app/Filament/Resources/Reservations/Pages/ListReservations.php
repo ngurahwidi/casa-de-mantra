@@ -5,13 +5,14 @@ namespace App\Filament\Resources\Reservations\Pages;
 use App\Actions\Reservation\CreateManualReservation;
 use App\Data\Reservation\GuestDetails;
 use App\Data\Reservation\ManualReservationData;
-use App\Enums\ReservationSource;
+use App\Enums\ReservationSourceCategory;
 use App\Exceptions\Pricing\PricingException;
 use App\Exceptions\Reservation\ReservationException;
 use App\Filament\Resources\Reservations\ReservationResource;
 use App\Filament\Resources\RoomTypes\RoomTypeResource;
 use App\Models\PropertyProfile;
 use App\Models\RatePlan;
+use App\Models\ReservationSource;
 use App\Models\RoomType;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -31,20 +32,17 @@ class ListReservations extends ListRecords
 {
     protected static string $resource = ReservationResource::class;
 
-    /** Sources a booking entered by hand can have; website requests come in on their own. */
-    private const MANUAL_SOURCES = [ReservationSource::BookingCom, ReservationSource::Expedia, ReservationSource::Manual];
-
     protected function getHeaderActions(): array
     {
         return [
             Action::make('createManualReservation')
                 ->label('Create manual reservation')
                 ->icon(Heroicon::OutlinedPlus)
-                ->modalDescription('For a booking taken by phone or made on Booking.com or Expedia. It is confirmed straight away; record payments on the reservation afterwards.')
+                ->modalDescription('For a booking taken directly from the guest, e.g. by phone, or made on an OTA. It is confirmed straight away; record payments on the reservation afterwards.')
                 ->modalWidth(Width::ThreeExtraLarge)
                 ->modalSubmitActionLabel('Create')
                 ->fillForm(fn (): array => [
-                    'source' => ReservationSource::BookingCom->value,
+                    'reservation_source_id' => ReservationSource::query()->forManualEntry()->count() === 1 ? ReservationSource::query()->forManualEntry()->value('id') : null,
                     'room_type_id' => RoomType::query()->count() === 1 ? RoomType::query()->value('id') : null,
                     'adults' => 2,
                     'children' => 0,
@@ -53,16 +51,17 @@ class ListReservations extends ListRecords
                     Section::make('Booking')
                         ->columns(2)
                         ->schema([
-                            Select::make('source')
+                            Select::make('reservation_source_id')
                                 ->label('Booked via')
-                                ->options(collect(self::MANUAL_SOURCES)->mapWithKeys(fn (ReservationSource $source): array => [$source->value => $source->label()]))
+                                ->options(fn (): array => ReservationSource::query()->forManualEntry()->orderBy('name')->pluck('name', 'id')->all())
+                                ->helperText('Active reservation sources. Add or deactivate them under Reservation sources.')
                                 ->required()
                                 ->live(),
                             TextInput::make('external_id')
                                 ->label('Booking number')
                                 ->helperText('The number on the OTA, so the same booking is not entered twice.')
                                 ->maxLength(191)
-                                ->visible(fn (Get $get): bool => $get('source') !== ReservationSource::Manual->value),
+                                ->visible(fn (Get $get): bool => self::isOtaSource($get('reservation_source_id'))),
                             Select::make('room_type_id')
                                 ->label('Room type')
                                 ->options(fn (): array => RoomType::query()->orderBy('name')->pluck('name', 'id')->all())
@@ -152,7 +151,7 @@ class ListReservations extends ListRecords
             $action->halt();
         }
 
-        $source = ReservationSource::from($data['source']);
+        $source = ReservationSource::query()->findOrFail($data['reservation_source_id']);
 
         try {
             $reservation = app(CreateManualReservation::class)->handle(
@@ -166,7 +165,7 @@ class ListReservations extends ListRecords
                     children: (int) $data['children'],
                     guest: new GuestDetails($data['full_name'], $data['email'], $data['phone'], $data['country'] ?? null),
                     total: filled($data['total'] ?? null) ? (string) $data['total'] : null,
-                    externalId: $source === ReservationSource::Manual ? null : ($data['external_id'] ?? null),
+                    externalId: $source->isOta() ? ($data['external_id'] ?? null) : null,
                     specialRequests: $data['special_requests'] ?? null,
                 ),
                 $this->admin(),
@@ -181,6 +180,15 @@ class ListReservations extends ListRecords
 
             $action->halt();
         }
+    }
+
+    /**
+     * Whether the source chosen in the form is an OTA, whose bookings have a booking number.
+     */
+    private static function isOtaSource(mixed $sourceId): bool
+    {
+        return is_string($sourceId)
+            && ReservationSource::query()->whereKey($sourceId)->where('category', ReservationSourceCategory::Ota)->exists();
     }
 
     private function admin(): User

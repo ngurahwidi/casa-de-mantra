@@ -12,9 +12,9 @@
 use App\Actions\Reservation\CreateManualReservation;
 use App\Data\Reservation\GuestDetails;
 use App\Data\Reservation\ManualReservationData;
-use App\Enums\ReservationSource;
 use App\Exceptions\Reservation\DatesNotAvailableException;
 use App\Models\RatePlan;
+use App\Models\ReservationSource;
 use App\Models\User;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Application;
@@ -33,7 +33,7 @@ $ratePlan = RatePlan::query()->with('roomType')->findOrFail($ratePlanId);
 try {
     $app->make(CreateManualReservation::class)->handle(
         new ManualReservationData(
-            source: ReservationSource::BookingCom,
+            source: ReservationSource::query()->where('code', 'booking_com')->sole(),
             roomType: $ratePlan->roomType,
             ratePlan: $ratePlan,
             checkIn: Carbon::parse($checkIn),

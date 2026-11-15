@@ -4,7 +4,6 @@ namespace Tests\Feature\Services;
 
 use App\Enums\NotificationLogStatus;
 use App\Enums\ReservationPaymentStatus;
-use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Jobs\SendReservationNotification;
 use App\Mail\ReservationNotificationMail;
@@ -12,6 +11,7 @@ use App\Models\NotificationLog;
 use App\Models\Payment;
 use App\Models\PropertyProfile;
 use App\Models\Reservation;
+use App\Models\ReservationSource;
 use App\Services\Notification\ReservationNotifier;
 use App\Services\Notification\ReservationReminders;
 use App\Services\Reservation\ReservationStateMachine;
@@ -233,7 +233,7 @@ class ReservationRemindersTest extends TestCase
         $this->seedNotificationSetup();
         $this->travelTo('2026-11-30 12:00:00');
         $reservation = Reservation::factory()->confirmed()->create([
-            'source' => ReservationSource::BookingCom,
+            'reservation_source_id' => ReservationSource::factory(),
             'guest_email' => self::GUEST_EMAIL,
         ]);
         app(ReservationStateMachine::class)->recordCreated($reservation);
@@ -264,7 +264,6 @@ class ReservationRemindersTest extends TestCase
     {
         $this->travelTo($requestedAt);
         $reservation = Reservation::factory()->create([
-            'source' => ReservationSource::DirectWeb,
             'guest_email' => self::GUEST_EMAIL,
         ]);
         app(ReservationStateMachine::class)->recordCreated($reservation);

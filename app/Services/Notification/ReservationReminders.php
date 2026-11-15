@@ -3,7 +3,7 @@
 namespace App\Services\Notification;
 
 use App\Enums\ReservationPaymentStatus;
-use App\Enums\ReservationSource;
+use App\Enums\ReservationSourceCategory;
 use App\Enums\ReservationStatus;
 use App\Models\PropertyProfile;
 use App\Models\Reservation;
@@ -113,7 +113,7 @@ class ReservationReminders
     {
         return Reservation::query()
             ->where('status', $status)
-            ->where('source', ReservationSource::DirectWeb);
+            ->whereRelation('source', 'category', ReservationSourceCategory::Website);
     }
 
     /**

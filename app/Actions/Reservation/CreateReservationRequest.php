@@ -8,7 +8,6 @@ use App\Data\Pricing\NightPrice;
 use App\Data\Reservation\GuestDetails;
 use App\Data\Reservation\ReservationRequestData;
 use App\Enums\ReservationPaymentStatus;
-use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Exceptions\Pricing\PricingException;
 use App\Exceptions\Reservation\DatesNotAvailableException;
@@ -16,6 +15,7 @@ use App\Models\Guest;
 use App\Models\PropertyProfile;
 use App\Models\RatePlan;
 use App\Models\Reservation;
+use App\Models\ReservationSource;
 use App\Services\Reservation\ReservationCodeGenerator;
 use App\Services\Reservation\ReservationStateMachine;
 use Illuminate\Support\Arr;
@@ -87,7 +87,7 @@ class CreateReservationRequest
                 'guest_phone' => $contact['phone'],
                 'guest_country' => $contact['country'],
                 'status' => ReservationStatus::Pending,
-                'source' => ReservationSource::DirectWeb,
+                'reservation_source_id' => ReservationSource::website()->getKey(),
                 'check_in' => $quote->checkIn,
                 'check_out' => $quote->checkOut,
                 'adults' => $data->adults,

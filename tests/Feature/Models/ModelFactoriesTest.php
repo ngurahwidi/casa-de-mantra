@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionMethod;
@@ -46,11 +47,15 @@ class ModelFactoriesTest extends TestCase
     #[DataProvider('models')]
     public function test_every_model_has_a_working_factory(string $class): void
     {
+        // Some tables start with rows from their migration, e.g. the built-in reservation sources.
+        $table = (new $class)->getTable();
+        $rowsBefore = DB::table($table)->count();
+
         $model = Factory::factoryForModel($class)->createOne();
 
         $this->assertTrue($model->exists);
         $this->assertNotNull($model->getKey());
-        $this->assertDatabaseCount($model->getTable(), 1);
+        $this->assertDatabaseCount($table, $rowsBefore + 1);
     }
 
     /**

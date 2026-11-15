@@ -138,7 +138,7 @@ class BookingRequestTest extends TestCase
         $response->assertRedirect(route('booking.success', ['code' => $code]));
 
         $this->assertSame('pending', $reservation->status->value);
-        $this->assertSame('direct_web', $reservation->source->value);
+        $this->assertSame('direct_web', $reservation->source->code);
         $this->assertSame('Jane Doe', $reservation->guest_full_name);
         $this->assertSame('jane@example.com', $reservation->guest_email);
         $this->assertSame('+62 812 3456 7890', $reservation->guest_phone);

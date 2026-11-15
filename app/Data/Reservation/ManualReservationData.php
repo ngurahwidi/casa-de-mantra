@@ -2,8 +2,8 @@
 
 namespace App\Data\Reservation;
 
-use App\Enums\ReservationSource;
 use App\Models\RatePlan;
+use App\Models\ReservationSource;
 use App\Models\RoomType;
 use Carbon\CarbonInterface;
 
@@ -16,7 +16,7 @@ use Carbon\CarbonInterface;
 final readonly class ManualReservationData
 {
     /**
-     * @param  ReservationSource  $source  booking_com, expedia or manual
+     * @param  ReservationSource  $source  an active OTA or direct source, not the website
      * @param  string|null  $total  the amount the guest pays, e.g. the price on the OTA, as a decimal
      *                              with at most two places; null prices the stay from the rate rules
      * @param  string|null  $externalId  the booking number on the OTA, if any

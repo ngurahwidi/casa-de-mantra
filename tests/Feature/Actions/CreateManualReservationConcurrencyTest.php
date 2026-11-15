@@ -6,12 +6,12 @@ use App\Actions\Reservation\ApproveReservation;
 use App\Actions\Reservation\CreateManualReservation;
 use App\Data\Reservation\GuestDetails;
 use App\Data\Reservation\ManualReservationData;
-use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Models\PropertyProfile;
 use App\Models\RatePlan;
 use App\Models\Reservation;
 use App\Models\ReservationRoom;
+use App\Models\ReservationSource;
 use App\Models\RoomType;
 use App\Models\Unit;
 use App\Models\User;
@@ -53,7 +53,7 @@ class CreateManualReservationConcurrencyTest extends TestCase
 
         DB::beginTransaction();
         $first = $this->app->make(CreateManualReservation::class)->handle(new ManualReservationData(
-            source: ReservationSource::Expedia,
+            source: ReservationSource::query()->where('code', 'expedia')->sole(),
             roomType: $ratePlan->roomType,
             ratePlan: $ratePlan,
             checkIn: Carbon::parse($this->checkIn()),

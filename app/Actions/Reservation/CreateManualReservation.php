@@ -7,16 +7,17 @@ use App\Data\Pricing\NightPrice;
 use App\Data\Pricing\PriceQuote;
 use App\Data\Reservation\ManualReservationData;
 use App\Enums\ReservationPaymentStatus;
-use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Exceptions\Pricing\GuestCapacityExceededException;
 use App\Exceptions\Pricing\PricingException;
 use App\Exceptions\Reservation\DatesNotAvailableException;
 use App\Exceptions\Reservation\DuplicateReservationException;
+use App\Exceptions\Reservation\InactiveReservationSourceException;
 use App\Exceptions\Reservation\InvalidAmountException;
 use App\Models\Guest;
 use App\Models\PropertyProfile;
 use App\Models\Reservation;
+use App\Models\ReservationSource;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Reservation\ReservationCodeGenerator;
@@ -27,7 +28,8 @@ use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
- * An admin enters a booking taken outside the website: by phone, or made on Booking.com or Expedia.
+ * An admin enters a booking taken outside the website: directly with the guest (e.g. by phone), or
+ * made on an OTA. The source is one of the active, non-website reservation sources.
  *
  * The booking is already agreed with the guest, so it is stored as confirmed straight away and
  * unpaid until payments are recorded (RecordPayment). Overlaps are still not allowed: inside one
@@ -39,16 +41,14 @@ use InvalidArgumentException;
  * spread evenly over the nights; only the room type's capacity is checked then, since the stay
  * has already been sold elsewhere.
  *
- * An OTA booking number is stored as external_id, with the source as external_source. The same
- * booking cannot be entered twice, unless the earlier entry was cancelled.
+ * An OTA booking number is stored as external_id, with the source's code as external_source. The
+ * same booking cannot be entered twice for a source, unless the earlier entry was cancelled.
  *
  * Unlike a request from the public site, the details come from an admin, so the guest record
  * takes them right away, as ConfirmReservation does.
  */
 class CreateManualReservation
 {
-    private const SOURCES = [ReservationSource::BookingCom, ReservationSource::Expedia, ReservationSource::Manual];
-
     public function __construct(
         private readonly CalculatePrice $calculatePrice,
         private readonly UnitAllocator $units,
@@ -57,6 +57,7 @@ class CreateManualReservation
     ) {}
 
     /**
+     * @throws InactiveReservationSourceException when the source has been deactivated
      * @throws PricingException when the stay cannot be sold under the rate plan or exceeds the capacity
      * @throws InvalidAmountException when the total is not a valid amount
      * @throws DatesNotAvailableException when no unit is free or check-in has passed
@@ -64,8 +65,12 @@ class CreateManualReservation
      */
     public function handle(ManualReservationData $data, User $admin, ?string $note = null): Reservation
     {
-        if (! in_array($data->source, self::SOURCES, true)) {
-            throw new InvalidArgumentException("A manual reservation cannot have source {$data->source->value}.");
+        if ($data->source->isWebsite()) {
+            throw new InvalidArgumentException("A manual reservation cannot have source {$data->source->name}.");
+        }
+
+        if (! $data->source->is_active) {
+            throw InactiveReservationSourceException::for($data->source);
         }
 
         $profile = PropertyProfile::current();
@@ -108,7 +113,7 @@ class CreateManualReservation
                 'guest_phone' => $contact['phone'],
                 'guest_country' => $contact['country'],
                 'status' => ReservationStatus::Confirmed,
-                'source' => $data->source,
+                'reservation_source_id' => $data->source->getKey(),
                 'check_in' => $quote->checkIn,
                 'check_out' => $quote->checkOut,
                 'adults' => $data->adults,
@@ -120,7 +125,7 @@ class CreateManualReservation
                 'total' => $quote->total,
                 'payment_status' => ReservationPaymentStatus::Unpaid,
                 'confirmed_at' => now(),
-                'external_source' => $externalId === null ? null : $data->source->value,
+                'external_source' => $externalId === null ? null : $data->source->code,
                 'external_id' => $externalId,
                 'policy_snapshot' => CreateReservationRequest::policySnapshot($data->ratePlan),
             ]);
@@ -151,7 +156,7 @@ class CreateManualReservation
     private function ensureNotEntered(ReservationSource $source, string $externalId): void
     {
         $code = Reservation::query()
-            ->where('external_source', $source->value)
+            ->where('external_source', $source->code)
             ->where('external_id', $externalId)
             ->where('status', '!=', ReservationStatus::Cancelled)
             ->value('code');

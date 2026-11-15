@@ -72,7 +72,7 @@ Untuk tiap malam dari `check_in` sampai `check_out - 1`: ambil `rate_rules` mili
 
 - Ketersediaan diambil lewat interface `AvailabilityProvider`; implementasi sekarang `InternalAvailabilityProvider`.
 - Pembuatan reservasi lewat interface `ReservationProvider`; implementasi sekarang `InternalReservationProvider`.
-- Simpan `source`, `external_source`, `external_id` di `reservations`.
+- Simpan sumber reservasi (`reservation_source_id`, lihat T5.8), `external_source`, `external_id` di `reservations`.
 - Tabel `integration_mappings` dan `outbox_events` sudah dibuat. Setiap perubahan status penting menulis event ke `outbox_events` (mis. `reservation.created`, `reservation.confirmed`).
 - Modul reservasi harus bisa dimatikan/diganti tanpa merusak lapisan konten (halaman, galeri, SEO).
 
@@ -141,7 +141,7 @@ Buat satu migrasi per kelompok tabel. Semua foreign key dengan index. Tambahkan 
 ### T2.5 Reservasi dan pembayaran
 
 - `guests`: `full_name`, `email`, `phone`, `country`.
-- `reservations`: `code` (unik), `guest_id`, `status`, `source` (direct_web|booking_com|expedia|manual), `check_in`, `check_out`, `adults`, `children`, `special_requests`, `currency`, `subtotal`, `tax_total` (default 0), `total`, `payment_status` (unpaid|deposit|paid|refunded), `expires_at`, `confirmed_at`, `ota_blocked_at`, `reject_reason`, `external_source`, `external_id`, `policy_snapshot` (json).
+- `reservations`: `code` (unik), `guest_id`, `status`, `reservation_source_id` (FK ke `reservation_sources`, lihat T5.8; awalnya kolom `source` berisi enum direct_web|booking_com|expedia|manual), `check_in`, `check_out`, `adults`, `children`, `special_requests`, `currency`, `subtotal`, `tax_total` (default 0), `total`, `payment_status` (unpaid|deposit|paid|refunded), `expires_at`, `confirmed_at`, `ota_blocked_at`, `reject_reason`, `external_source`, `external_id`, `policy_snapshot` (json).
 - `reservation_rooms`: `reservation_id`, `room_type_id`, `unit_id` (nullable), `rate_plan_id`, `total_price`.
 - `reservation_nights`: `reservation_room_id`, `night_date`, `price`.
 - `reservation_status_logs`: `reservation_id`, `admin_user_id` (nullable untuk aksi sistem), `from_status`, `to_status`, `note`, `created_at`.
@@ -200,7 +200,7 @@ Semua service punya test. Gunakan data deterministik dan `Carbon::setTestNow`.
 
 ### T4.4 Create reservation request
 
-- `CreateReservationRequest` (implementasi `ReservationProvider`): validasi ketersediaan dan harga, buat/ambil `guests` (cocokkan via email), buat `reservations` (status `pending`, source `direct_web`), `reservation_rooms`, `reservation_nights`, isi `policy_snapshot`, generate `code` yang tidak mudah ditebak (mis. 8 karakter acak), dalam satu transaksi.
+- `CreateReservationRequest` (implementasi `ReservationProvider`): validasi ketersediaan dan harga, buat/ambil `guests` (cocokkan via email), buat `reservations` (status `pending`, sumber bawaan Website), `reservation_rooms`, `reservation_nights`, isi `policy_snapshot`, generate `code` yang tidak mudah ditebak (mis. 8 karakter acak), dalam satu transaksi.
 - Kirim event `reservation.created` (memicu notifikasi).
 - **Test:** sukses, tanggal tidak tersedia, harga belum diatur, kapasitas melebihi batas.
 
@@ -227,7 +227,7 @@ Semua service punya test. Gunakan data deterministik dan `Carbon::setTestNow`.
 
 ### T4.8 Reservasi manual dan blok OTA
 
-- `CreateManualReservation` untuk input booking OTA/telepon (source `booking_com|expedia|manual`), langsung `confirmed`, validasi bentrok tetap berlaku.
+- `CreateManualReservation` untuk input booking OTA/telepon dengan sumber reservasi yang **aktif** berkategori `ota` atau `direct` (T5.8), langsung `confirmed`, validasi bentrok tetap berlaku. Sumber Website atau sumber nonaktif ditolak. Nomor booking OTA disimpan sebagai `external_id` dengan `code` sumber sebagai `external_source`; booking yang sama tidak boleh diinput dua kali untuk sumber yang sama (kecuali yang lama sudah `cancelled`).
 - `MarkOtaBlocked` mengisi `ota_blocked_at`.
 
 ---
@@ -274,6 +274,16 @@ Semua service punya test. Gunakan data deterministik dan `Carbon::setTestNow`.
 
 - Halaman/widget "Ready to sell?" yang memeriksa: profil property lengkap, tipe kamar punya kapasitas dan minimal 1 foto, minimal 1 unit aktif, rate plan aktif dengan policy, **setiap malam 365 hari ke depan punya harga**, template notifikasi aktif. Tampilkan tanggal yang belum berharga.
 - Tipe kamar tidak boleh dipublikasikan jika pemeriksaan wajib gagal.
+
+### T5.8 Sumber reservasi
+
+- Tabel `reservation_sources`: `name` (unik), `code` (unik, dibuat otomatis dari nama saat dibuat dan tidak pernah berubah; dipakai sebagai `reservations.external_source`), `category` (`website|ota|direct`, CHECK constraint), `is_active`.
+- Kategori: `website` = form booking di situs ini (hanya untuk sumber bawaan), `ota` = booking dari OTA (Booking.com, Expedia, Agoda, dst.), `direct` = langsung dari tamu (telepon, WhatsApp, email, walk-in).
+- Migrasi membuat sumber bawaan dari enum lama (Website/`direct_web`, Booking.com/`booking_com`, Expedia/`expedia`, Phone/`manual`) dan memindahkan `reservations.source` menjadi `reservation_source_id` (FK `restrictOnDelete`).
+- Sumber Website bawaan dipakai `CreateReservationRequest` dan menentukan reservasi yang mendapat email tamu (T7.1/T7.2). Sumber ini tidak bisa diubah, dinonaktifkan, atau dihapus.
+- Menu admin **Reservation sources** (grup Settings): owner **dan staff** boleh menambah, mengubah, menonaktifkan/mengaktifkan, dan menghapus sumber. Sumber yang sudah punya reservasi tidak bisa dihapus, hanya dinonaktifkan; reservasi lama tetap memakai sumbernya. Hak akses di `ReservationSourcePolicy`.
+- Form **Create manual reservation** (T5.4) hanya menawarkan sumber aktif berkategori `ota`/`direct`; isian nomor booking hanya muncul untuk kategori `ota`. Kolom, filter, dan detail reservasi menampilkan nama sumber.
+- **Test:** data bawaan dari migrasi, pembuatan `code`, nama unik, CHECK kategori, FK menolak hapus sumber yang dipakai, matriks policy owner/staff, aksi admin (tambah, nonaktifkan/aktifkan, hapus, sumber Website terkunci), sumber nonaktif/Website ditolak saat input reservasi manual.
 
 ---
 
@@ -336,7 +346,7 @@ Fase ini tidak dikerjakan. Fitur iCal (tabel `ical_feeds`, resource Filament, `S
 
 Pengganti alur iCal:
 
-- Booking dari OTA: admin menginputnya sebagai reservasi manual (T4.8, aksi **Create manual reservation** di T5.4) dengan source `booking_com`/`expedia` dan nomor booking OTA.
+- Booking dari OTA: admin menginputnya sebagai reservasi manual (T4.8, aksi **Create manual reservation** di T5.4) dengan sumber OTA terkait (mis. Booking.com, Expedia; daftar dikelola di T5.8) dan nomor booking OTA.
 - Reservasi website: setelah `confirmed`, admin menutup tanggalnya di extranet OTA lalu mencentang **"Blocked on OTA"**. Dashboard (T5.5) menampilkan reservasi yang belum ditutup.
 
 ---

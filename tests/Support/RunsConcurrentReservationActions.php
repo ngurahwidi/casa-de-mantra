@@ -21,6 +21,13 @@ trait RunsConcurrentReservationActions
 {
     use DatabaseTruncation;
 
+    /**
+     * Created by their migration, like the website source every request needs, so kept.
+     *
+     * @var list<string>
+     */
+    protected array $exceptTables = ['reservation_sources'];
+
     protected function setUpRunsConcurrentReservationActions(): void
     {
         $this->beforeApplicationDestroyed(function (): void {

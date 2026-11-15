@@ -3,7 +3,6 @@
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\ReservationPaymentStatus;
-use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -33,7 +32,8 @@ return new class extends Migration
             $table->string('code', 16)->unique()->collation('utf8mb4_bin');
             $table->foreignUuid('guest_id')->constrained()->restrictOnDelete();
             $table->string('status', 20)->default(ReservationStatus::Pending->value);
-            $table->string('source', 20)->default(ReservationSource::DirectWeb->value);
+            // Replaced by reservation_source_id (2026_11_15_024906_create_reservation_sources_table).
+            $table->string('source', 20)->default('direct_web');
             // Stay dates; check_out is exclusive.
             $table->date('check_in');
             $table->date('check_out');
@@ -130,7 +130,8 @@ return new class extends Migration
         });
 
         $statuses = $this->quoted(ReservationStatus::cases());
-        $sources = $this->quoted(ReservationSource::cases());
+        // The values of the former ReservationSource enum.
+        $sources = "'direct_web', 'booking_com', 'expedia', 'manual'";
         $reservationPaymentStatuses = $this->quoted(ReservationPaymentStatus::cases());
         $paymentMethods = $this->quoted(PaymentMethod::cases());
         $paymentStatuses = $this->quoted(PaymentStatus::cases());

@@ -5,7 +5,6 @@ namespace App\Services\Notification;
 use App\Enums\NotificationChannel;
 use App\Enums\NotificationLogStatus;
 use App\Enums\ReservationPaymentStatus;
-use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Jobs\SendReservationNotification;
 use App\Mail\ReservationNotificationMail;
@@ -206,7 +205,7 @@ class ReservationNotifier
 
     private static function isNotified(Reservation $reservation): bool
     {
-        return $reservation->source === ReservationSource::DirectWeb;
+        return $reservation->source->isWebsite();
     }
 
     /**

@@ -7,7 +7,6 @@ use App\Enums\NotificationLogStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\ReservationPaymentStatus;
-use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Filament\Resources\Reservations\ReservationResource;
 use App\Models\Payment;
@@ -52,8 +51,8 @@ class ReservationInfolist
                             ->badge()
                             ->formatStateUsing(fn (ReservationStatus $state): string => $state->label())
                             ->color(fn (ReservationStatus $state): string => ReservationResource::statusColor($state)),
-                        TextEntry::make('source')
-                            ->formatStateUsing(fn (ReservationSource $state): string => $state->label()),
+                        TextEntry::make('source.name')
+                            ->label('Source'),
                         TextEntry::make('dates')
                             ->state(fn (Reservation $record): string => ReservationResource::stay($record))
                             ->columnSpan(2),

@@ -3,7 +3,6 @@
 namespace App\Filament\Widgets;
 
 use App\Enums\ReservationPaymentStatus;
-use App\Enums\ReservationSource;
 use App\Filament\Resources\Reservations\ReservationResource;
 use App\Models\Reservation;
 use App\Services\Dashboard\DashboardOverview;
@@ -27,7 +26,7 @@ class OutstandingBalancesWidget extends TableWidget
         return $table
             ->heading('Completed, not fully paid')
             ->description('Stays that have ended with a balance still to collect. Open one to record the payment.')
-            ->query(fn (): Builder => app(DashboardOverview::class)->outstandingBalances())
+            ->query(fn (): Builder => app(DashboardOverview::class)->outstandingBalances()->with('source'))
             ->defaultPaginationPageOption(10)
             ->emptyStateHeading('No outstanding balances')
             ->emptyStateDescription(null)
@@ -37,8 +36,8 @@ class OutstandingBalancesWidget extends TableWidget
                 TextColumn::make('guest_full_name')
                     ->label('Guest')
                     ->description(fn (Reservation $record): string => $record->guest_phone),
-                TextColumn::make('source')
-                    ->formatStateUsing(fn (ReservationSource $state): string => $state->label()),
+                TextColumn::make('source.name')
+                    ->label('Source'),
                 TextColumn::make('stay')
                     ->state(fn (Reservation $record): string => ReservationResource::stay($record)),
                 TextColumn::make('payment_status')

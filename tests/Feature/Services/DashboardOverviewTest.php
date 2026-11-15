@@ -4,13 +4,13 @@ namespace Tests\Feature\Services;
 
 use App\Enums\PaymentStatus;
 use App\Enums\ReservationPaymentStatus;
-use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Enums\UnitStatus;
 use App\Models\Payment;
 use App\Models\PropertyProfile;
 use App\Models\Reservation;
 use App\Models\ReservationRoom;
+use App\Models\ReservationSource;
 use App\Models\Unit;
 use App\Services\Dashboard\DashboardOverview;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -120,7 +120,7 @@ class DashboardOverviewTest extends TestCase
         $deposit = $this->completedStay(ReservationPaymentStatus::Deposit, ['check_in' => '2026-11-17', 'check_out' => '2026-11-20']);
         Payment::factory()->for($deposit)->paid()->create(['amount' => '1500000.50']);
         Payment::factory()->for($deposit)->create(['amount' => 3000000]);
-        $unpaidOta = $this->completedStay(ReservationPaymentStatus::Unpaid, ['check_in' => '2026-11-07', 'check_out' => '2026-11-10', 'source' => ReservationSource::BookingCom]);
+        $unpaidOta = $this->completedStay(ReservationPaymentStatus::Unpaid, ['check_in' => '2026-11-07', 'check_out' => '2026-11-10', 'reservation_source_id' => ReservationSource::factory()]);
         $this->completedStay(ReservationPaymentStatus::Paid);
         Reservation::factory()->confirmed()->create(['payment_status' => ReservationPaymentStatus::Deposit]);
 

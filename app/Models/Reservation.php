@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Enums\PaymentStatus;
 use App\Enums\ReservationPaymentStatus;
-use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use Database\Factories\ReservationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -23,7 +22,7 @@ use Illuminate\Support\Carbon;
  * with this reservation; use them to contact the guest about it, not the guest record.
  *
  * @property ReservationStatus $status
- * @property ReservationSource $source
+ * @property-read ReservationSource $source
  * @property ReservationPaymentStatus $payment_status
  * @property Carbon $check_in
  * @property Carbon $check_out
@@ -41,7 +40,7 @@ use Illuminate\Support\Carbon;
     'guest_phone',
     'guest_country',
     'status',
-    'source',
+    'reservation_source_id',
     'check_in',
     'check_out',
     'adults',
@@ -71,6 +70,16 @@ class Reservation extends Model
     public function guest(): BelongsTo
     {
         return $this->belongsTo(Guest::class);
+    }
+
+    /**
+     * Where the reservation was booked.
+     *
+     * @return BelongsTo<ReservationSource, $this>
+     */
+    public function source(): BelongsTo
+    {
+        return $this->belongsTo(ReservationSource::class, 'reservation_source_id');
     }
 
     /**
@@ -132,7 +141,6 @@ class Reservation extends Model
     {
         return [
             'status' => ReservationStatus::class,
-            'source' => ReservationSource::class,
             'payment_status' => ReservationPaymentStatus::class,
             'check_in' => 'date',
             'check_out' => 'date',

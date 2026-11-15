@@ -2,7 +2,6 @@
 
 namespace Tests\Browser;
 
-use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Models\CancellationPolicy;
 use App\Models\PropertyProfile;
@@ -24,6 +23,13 @@ use Tests\DuskTestCase;
 class BookingRequestTest extends DuskTestCase
 {
     use DatabaseTruncation;
+
+    /**
+     * Created by their migration, like the website source every request needs, so kept.
+     *
+     * @var list<string>
+     */
+    protected array $exceptTables = ['reservation_sources'];
 
     public function test_guest_picks_dates_in_the_calendar_and_sends_a_booking_request(): void
     {
@@ -63,7 +69,7 @@ class BookingRequestTest extends DuskTestCase
 
         $reservation = Reservation::query()->sole();
         $this->assertSame(ReservationStatus::Pending, $reservation->status);
-        $this->assertSame(ReservationSource::DirectWeb, $reservation->source);
+        $this->assertTrue($reservation->source->isWebsite());
         $this->assertSame($checkIn, $reservation->check_in->toDateString());
         $this->assertSame($checkOut, $reservation->check_out->toDateString());
         $this->assertSame('jane@example.com', $reservation->guest_email);

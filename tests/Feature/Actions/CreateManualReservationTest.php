@@ -7,13 +7,13 @@ use App\Data\Reservation\GuestDetails;
 use App\Data\Reservation\ManualReservationData;
 use App\Enums\OutboxEventStatus;
 use App\Enums\ReservationPaymentStatus;
-use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Exceptions\Pricing\GuestCapacityExceededException;
 use App\Exceptions\Pricing\PriceNotConfiguredException;
 use App\Exceptions\Pricing\RoomTypeNotBookableException;
 use App\Exceptions\Reservation\DatesNotAvailableException;
 use App\Exceptions\Reservation\DuplicateReservationException;
+use App\Exceptions\Reservation\InactiveReservationSourceException;
 use App\Exceptions\Reservation\InvalidAmountException;
 use App\Models\AvailabilityBlock;
 use App\Models\CancellationPolicy;
@@ -25,6 +25,7 @@ use App\Models\RateRule;
 use App\Models\Reservation;
 use App\Models\ReservationNight;
 use App\Models\ReservationRoom;
+use App\Models\ReservationSource;
 use App\Models\ReservationStatusLog;
 use App\Models\RoomType;
 use App\Models\Unit;
@@ -55,6 +56,12 @@ class CreateManualReservationTest extends TestCase
 
     private CancellationPolicy $policy;
 
+    private ReservationSource $phone;
+
+    private ReservationSource $agoda;
+
+    private ReservationSource $traveloka;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -66,6 +73,9 @@ class CreateManualReservationTest extends TestCase
 
         $this->create = $this->app->make(CreateManualReservation::class);
         $this->admin = User::factory()->create();
+        $this->phone = ReservationSource::factory()->direct()->create(['name' => 'Front desk phone']);
+        $this->agoda = ReservationSource::factory()->create(['name' => 'Agoda']);
+        $this->traveloka = ReservationSource::factory()->create(['name' => 'Traveloka']);
         $this->roomType = RoomType::factory()->published()->create(['max_adults' => 4, 'max_children' => 2]);
         $this->unit = Unit::factory()->for($this->roomType)->create(['code' => 'A']);
         $this->policy = CancellationPolicy::factory()->create([
@@ -122,7 +132,7 @@ class CreateManualReservationTest extends TestCase
         $this->assertSame($reservation->id, $fresh->id);
         $this->assertMatchesRegularExpression('/^RSV-[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$/', $fresh->code);
         $this->assertSame(ReservationStatus::Confirmed, $fresh->status);
-        $this->assertSame(ReservationSource::Manual, $fresh->source);
+        $this->assertTrue($fresh->source->is($this->phone));
         $this->assertSame(ReservationPaymentStatus::Unpaid, $fresh->payment_status);
         $this->assertSame('2026-11-01 08:00:00', $fresh->confirmed_at->toDateTimeString());
         $this->assertNull($fresh->expires_at);
@@ -180,14 +190,14 @@ class CreateManualReservationTest extends TestCase
     public function test_ota_booking_is_stored_at_the_total_entered(): void
     {
         $reservation = $this->create->handle($this->data(
-            source: ReservationSource::BookingCom,
+            source: $this->agoda,
             total: ' 4000000.01 ',
             externalId: ' 4211337890 ',
         ), $this->admin);
 
         $fresh = $reservation->fresh();
-        $this->assertSame(ReservationSource::BookingCom, $fresh->source);
-        $this->assertSame('booking_com', $fresh->external_source);
+        $this->assertTrue($fresh->source->is($this->agoda));
+        $this->assertSame('agoda', $fresh->external_source);
         $this->assertSame('4211337890', $fresh->external_id);
         $this->assertSame('4000000.01', $fresh->subtotal);
         $this->assertSame('0.00', $fresh->tax_total);
@@ -208,7 +218,7 @@ class CreateManualReservationTest extends TestCase
         $this->ratePlan->update(['is_active' => false, 'min_stay' => 5]);
         $this->roomType->update(['is_published' => false]);
 
-        $reservation = $this->create->handle($this->data(source: ReservationSource::Expedia, total: '4500000'), $this->admin);
+        $reservation = $this->create->handle($this->data(source: $this->traveloka, total: '4500000'), $this->admin);
 
         $this->assertSame(ReservationStatus::Confirmed, $reservation->fresh()->status);
         $this->assertSame('4500000.00', $reservation->fresh()->total);
@@ -300,16 +310,16 @@ class CreateManualReservationTest extends TestCase
     public function test_the_same_ota_booking_cannot_be_entered_twice(): void
     {
         Unit::factory()->for($this->roomType)->create(['code' => 'B']);
-        $first = $this->create->handle($this->data(source: ReservationSource::BookingCom, total: '4500000', externalId: '4211337890'), $this->admin);
+        $first = $this->create->handle($this->data(source: $this->agoda, total: '4500000', externalId: '4211337890'), $this->admin);
 
         $this->assertRejected(
-            fn () => $this->create->handle($this->data(source: ReservationSource::BookingCom, total: '4500000', externalId: '4211337890'), $this->admin),
+            fn () => $this->create->handle($this->data(source: $this->agoda, total: '4500000', externalId: '4211337890'), $this->admin),
             DuplicateReservationException::class,
-            "The booking_com booking 4211337890 has already been entered as reservation {$first->code}.",
+            "The Agoda booking 4211337890 has already been entered as reservation {$first->code}.",
         );
 
         // The same number on another OTA is a different booking.
-        $this->create->handle($this->data(source: ReservationSource::Expedia, total: '4500000', externalId: '4211337890'), $this->admin);
+        $this->create->handle($this->data(source: $this->traveloka, total: '4500000', externalId: '4211337890'), $this->admin);
 
         $this->assertDatabaseCount('reservations', 2);
     }
@@ -318,22 +328,33 @@ class CreateManualReservationTest extends TestCase
     {
         Reservation::factory()->create([
             'status' => ReservationStatus::Cancelled,
-            'source' => ReservationSource::BookingCom,
-            'external_source' => 'booking_com',
+            'reservation_source_id' => $this->agoda,
+            'external_source' => 'agoda',
             'external_id' => '4211337890',
         ]);
 
-        $reservation = $this->create->handle($this->data(source: ReservationSource::BookingCom, total: '4500000', externalId: '4211337890'), $this->admin);
+        $reservation = $this->create->handle($this->data(source: $this->agoda, total: '4500000', externalId: '4211337890'), $this->admin);
 
         $this->assertSame(ReservationStatus::Confirmed, $reservation->status);
     }
 
-    public function test_direct_web_is_not_a_manual_source(): void
+    public function test_the_website_is_not_a_manual_source(): void
     {
         $this->assertRejected(
-            fn () => $this->create->handle($this->data(source: ReservationSource::DirectWeb), $this->admin),
+            fn () => $this->create->handle($this->data(source: ReservationSource::website()), $this->admin),
             InvalidArgumentException::class,
-            'A manual reservation cannot have source direct_web.',
+            'A manual reservation cannot have source Website.',
+        );
+    }
+
+    public function test_an_inactive_source_is_rejected(): void
+    {
+        $this->agoda->update(['is_active' => false]);
+
+        $this->assertRejected(
+            fn () => $this->create->handle($this->data(source: $this->agoda, total: '4500000'), $this->admin),
+            InactiveReservationSourceException::class,
+            'Agoda is no longer an active reservation source.',
         );
     }
 
@@ -401,7 +422,7 @@ class CreateManualReservationTest extends TestCase
     }
 
     private function data(
-        ReservationSource $source = ReservationSource::Manual,
+        ?ReservationSource $source = null,
         string $checkIn = '2026-12-24',
         string $checkOut = '2026-12-27',
         int $adults = 2,
@@ -412,7 +433,7 @@ class CreateManualReservationTest extends TestCase
         ?string $specialRequests = null,
     ): ManualReservationData {
         return new ManualReservationData(
-            source: $source,
+            source: $source ?? $this->phone,
             roomType: $this->roomType,
             ratePlan: $this->ratePlan,
             checkIn: Carbon::parse($checkIn),

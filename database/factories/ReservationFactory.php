@@ -3,10 +3,10 @@
 namespace Database\Factories;
 
 use App\Enums\ReservationPaymentStatus;
-use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Models\Guest;
 use App\Models\Reservation;
+use App\Models\ReservationSource;
 use App\Services\Reservation\ReservationCodeGenerator;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -18,7 +18,7 @@ class ReservationFactory extends Factory
     /**
      * Define the model's default state.
      *
-     * Three nights at 1,500,000; tax is inactive so tax_total stays 0.
+     * A website request for three nights at 1,500,000; tax is inactive so tax_total stays 0.
      *
      * @return array<string, mixed>
      */
@@ -28,7 +28,7 @@ class ReservationFactory extends Factory
             'code' => ReservationCodeGenerator::random(),
             'guest_id' => Guest::factory(),
             'status' => ReservationStatus::Pending,
-            'source' => ReservationSource::DirectWeb,
+            'reservation_source_id' => fn (): string => ReservationSource::website()->getKey(),
             'check_in' => '2026-12-24',
             'check_out' => '2026-12-27',
             'adults' => 2,
