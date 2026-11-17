@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Faq;
 use App\Models\PropertyProfile;
 use App\Models\RoomType;
+use App\Services\Site\HomepageHero;
 use App\Services\Site\HomeReviews;
 use App\Services\Site\StaySearch;
 use App\Services\Site\VillaCatalog;
@@ -16,9 +17,11 @@ use Illuminate\View\View;
 
 class HomeController extends Controller
 {
-    public function __invoke(Request $request, VillaCatalog $catalog, StaySearch $search, HomeReviews $homeReviews): View
+    public function __invoke(Request $request, VillaCatalog $catalog, StaySearch $search, HomepageHero $hero, HomeReviews $homeReviews): View
     {
         $villas = $catalog->published();
+        // Resolved before the villas are reordered by a search, so the fallback photo stays put.
+        $heroContent = $hero->resolve(rescue(fn () => PropertyProfile::current(), null, false), $villas);
         $maxGuests = max(1, (int) $villas->max(fn (RoomType $villa) => $villa->max_adults + $villa->max_children));
 
         $stayQuery = $villas->isEmpty() ? null : $this->stayQuery($request, $search, $maxGuests);
@@ -42,10 +45,7 @@ class HomeController extends Controller
             'stayQuery' => $stayQuery,
             'stays' => $stays,
             'maxGuests' => $maxGuests,
-            'heroPhoto' => $villas
-                ->map(fn (RoomType $villa) => $villa->getFirstMedia(RoomType::GALLERY))
-                ->filter()
-                ->first(),
+            'hero' => $heroContent,
             'photos' => $villas
                 ->flatMap(fn (RoomType $villa) => $villa->getMedia(RoomType::GALLERY)
                     ->map(fn ($media) => [

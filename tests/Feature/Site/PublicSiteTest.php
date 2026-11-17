@@ -13,7 +13,9 @@ use App\Models\RateRule;
 use App\Models\Review;
 use App\Models\RoomType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -164,6 +166,35 @@ class PublicSiteTest extends TestCase
                 'Oldest five star review',
                 'Four star review',
             ]);
+    }
+
+    public function test_home_page_hero_shows_the_title_subtitle_and_banner_set_by_the_admin(): void
+    {
+        Storage::fake('public');
+        $this->profile->update(['hero_title' => 'Your own corner of Bali', 'hero_subtitle' => 'Wake up to the rice fields.']);
+        $this->profile->addMedia(UploadedFile::fake()->image('sunset-banner.jpg'))->toMediaCollection(PropertyProfile::HERO);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Your own corner of Bali')
+            ->assertSee('Wake up to the rice fields.')
+            ->assertSee('sunset-banner.jpg', false)
+            ->assertDontSee('A private villa, entirely yours.');
+    }
+
+    public function test_homepage_banner_is_the_share_image_except_on_villa_pages(): void
+    {
+        Storage::fake('public');
+        $banner = $this->profile->addMedia(UploadedFile::fake()->image('sunset-banner.jpg'))->toMediaCollection(PropertyProfile::HERO);
+
+        $this->get(route('about'))
+            ->assertOk()
+            ->assertSee('<meta property="og:image" content="'.url($banner->getUrl()).'">', false);
+
+        $this->get(route('villas.show', $this->villa->slug))
+            ->assertOk()
+            ->assertSee('<meta property="og:image" content="'.url($this->villa->getFirstMediaUrl(RoomType::GALLERY)).'">', false)
+            ->assertDontSee('<meta property="og:image" content="'.url($banner->getUrl()).'">', false);
     }
 
     public function test_home_page_renders_seo_meta_open_graph_and_lodging_schema(): void
