@@ -62,6 +62,7 @@ if (isset($defaultSchema) && is_array($defaultSchema)) {
                 --color-ink: #2B312A;
                 --color-muted: #5E6257;
                 --color-line: #DED8CB;
+                --color-rating: #C0803F;
             }
         </style>
 

@@ -179,40 +179,76 @@
     @endif
 
     @if ($reviews->isNotEmpty())
-        <section class="bg-[var(--color-primary)] py-16 text-[var(--color-paper)] sm:py-24">
+        <section class="bg-[var(--color-paper-deep)] py-16 sm:py-24" data-review-slider>
             <div class="site-container">
-                <p class="eyebrow !text-white/60">Guest words</p>
+                <div class="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+                    <x-site.section-heading
+                        eyebrow="Guest words"
+                        title="What guests remember."
+                        description="Notes from people who have stayed with us."
+                    />
 
-                @php($featured = $reviews->first())
-                <figure class="mt-8 grid gap-10 lg:grid-cols-[1.4fr_1fr] lg:items-end">
-                    <blockquote>
-                        <p class="text-balance font-serif text-3xl leading-[1.15] sm:text-4xl lg:text-5xl">
-                            “{{ $featured->comment ?: 'A stay that felt like our own home, only warmer.' }}”
-                        </p>
-                        <figcaption class="mt-6 text-xs uppercase tracking-[0.18em] text-white/60">
-                            {{ $featured->guest_name }}
-                            @if ($featured->source)
-                                · {{ $featured->source }}
-                            @endif
-                        </figcaption>
-                    </blockquote>
-
-                    <div class="flex flex-col gap-5">
-                        @foreach ($reviews->skip(1)->take(3) as $review)
-                            <div class="border-t border-white/15 pt-4">
-                                <div class="flex items-center gap-1 text-[var(--color-accent)]" aria-label="{{ $review->rating }} out of 5 stars">
-                                    @for ($i = 1; $i <= 5; $i++)
-                                        <svg class="h-3 w-3" viewBox="0 0 20 20" fill="{{ $i <= $review->rating ? 'currentColor' : 'none' }}" stroke="currentColor" stroke-width="1" aria-hidden="true">
-                                            <path d="M10 1.8l2.5 5.2 5.7.8-4.1 4 1 5.7-5.1-2.7-5.1 2.7 1-5.7-4.1-4 5.7-.8L10 1.8z" />
-                                        </svg>
-                                    @endfor
-                                </div>
-                                <p class="mt-2 text-sm leading-6 text-white/75">{{ \Illuminate\Support\Str::limit($review->comment, 140) }}</p>
-                                <p class="mt-2 text-[10px] uppercase tracking-[0.16em] text-white/65">{{ $review->guest_name }}</p>
-                            </div>
-                        @endforeach
+                    <div class="hidden shrink-0 items-center gap-2 sm:flex" data-review-controls>
+                        <button
+                            type="button"
+                            data-review-scroll="prev"
+                            aria-label="Previous guest reviews"
+                            class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-line)] bg-[#FCFAF4] text-[var(--color-primary)] transition hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-[var(--color-paper)] disabled:pointer-events-none disabled:opacity-40"
+                        >
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 5l-7 7 7 7" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            data-review-scroll="next"
+                            aria-label="Next guest reviews"
+                            class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-line)] bg-[#FCFAF4] text-[var(--color-primary)] transition hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-[var(--color-paper)] disabled:pointer-events-none disabled:opacity-40"
+                        >
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
                     </div>
-                </figure>
+                </div>
+
+                <div
+                    class="mt-8 flex snap-x snap-mandatory gap-6 overflow-x-auto overscroll-x-contain pb-2 [scrollbar-width:none] sm:mt-10 [&::-webkit-scrollbar]:hidden"
+                    data-review-rail
+                    role="region"
+                    aria-label="Guest reviews"
+                    tabindex="0"
+                >
+                    @foreach ($reviews as $review)
+                        <article
+                            class="flex w-[85%] shrink-0 flex-col rounded-2xl border border-[var(--color-line)] bg-[#FCFAF4] p-6 shadow-sm sm:w-[calc((100%_-_3rem)/2.25)] sm:p-7 lg:w-[calc((100%_-_4.5rem)/3.25)] {{ $loop->last ? 'snap-end' : 'snap-start' }}"
+                            data-review-card
+                        >
+                            <div class="flex items-center gap-1 text-[var(--color-rating)]" aria-label="{{ $review->rating }} out of 5 stars">
+                                @for ($i = 1; $i <= 5; $i++)
+                                    <svg class="h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="{{ $i <= $review->rating ? 'currentColor' : 'none' }}" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+                                        <path d="M10 1.8l2.5 5.2 5.7.8-4.1 4 1 5.7-5.1-2.7-5.1 2.7 1-5.7-4.1-4 5.7-.8L10 1.8z" />
+                                    </svg>
+                                @endfor
+                            </div>
+
+                            <blockquote class="mt-5 flex-1">
+                                <p class="line-clamp-6 text-sm leading-7 text-[var(--color-ink)]/90">“{{ $review->comment }}”</p>
+                            </blockquote>
+
+                            <div class="mt-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t border-[var(--color-line)] pt-4">
+                                <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-ink)]">{{ $review->guest_name }}</p>
+                                @if ($review->source)
+                                    <p class="text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)]">via {{ $review->source }}</p>
+                                @endif
+                            </div>
+                        </article>
+                    @endforeach
+                </div>
+
+                <p class="mt-3 text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)] sm:hidden" data-review-hint>
+                    Swipe to read more
+                </p>
             </div>
         </section>
     @endif

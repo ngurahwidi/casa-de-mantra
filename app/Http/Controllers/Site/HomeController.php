@@ -7,8 +7,8 @@ use App\Data\Site\StaySearchResult;
 use App\Http\Controllers\Controller;
 use App\Models\Faq;
 use App\Models\PropertyProfile;
-use App\Models\Review;
 use App\Models\RoomType;
+use App\Services\Site\HomeReviews;
 use App\Services\Site\StaySearch;
 use App\Services\Site\VillaCatalog;
 use Illuminate\Http\Request;
@@ -16,7 +16,7 @@ use Illuminate\View\View;
 
 class HomeController extends Controller
 {
-    public function __invoke(Request $request, VillaCatalog $catalog, StaySearch $search): View
+    public function __invoke(Request $request, VillaCatalog $catalog, StaySearch $search, HomeReviews $homeReviews): View
     {
         $villas = $catalog->published();
         $maxGuests = max(1, (int) $villas->max(fn (RoomType $villa) => $villa->max_adults + $villa->max_children));
@@ -55,7 +55,7 @@ class HomeController extends Controller
                     ]))
                 ->take(6)
                 ->values(),
-            'reviews' => Review::published()->latest()->limit(6)->get(),
+            'reviews' => $homeReviews->select(),
             'faqs' => Faq::ordered()->limit(4)->get(),
         ]);
     }
