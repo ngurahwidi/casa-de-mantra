@@ -116,6 +116,24 @@ class ReservationNotifierTest extends TestCase
         Mail::assertSent(ContactMessageMail::class, fn (ContactMessageMail $mail): bool => $mail->hasFrom(self::PROPERTY_EMAIL, 'Villa Aruna'));
     }
 
+    public function test_reservation_and_contact_emails_show_the_property_logo(): void
+    {
+        $this->seedNotificationSetup();
+        PropertyProfile::current()->update(['logo_dark_path' => 'branding/logo-white.png']);
+        $logoUrl = url('/storage/branding/logo-white.png');
+        Mail::fake();
+
+        app(ReservationStateMachine::class)->transition($this->reservation(), ReservationStatus::Rejected);
+        $this->post(route('contact.store'), [
+            'name' => 'Jane Guest',
+            'email' => 'jane@example.com',
+            'message' => 'We would like to stay for five nights in December.',
+        ]);
+
+        Mail::assertSent(ReservationNotificationMail::class, fn (ReservationNotificationMail $mail): bool => str_contains($mail->render(), 'src="'.$logoUrl.'"'));
+        Mail::assertSent(ContactMessageMail::class, fn (ContactMessageMail $mail): bool => str_contains($mail->render(), 'src="'.$logoUrl.'"'));
+    }
+
     public function test_emails_go_through_the_queue_with_a_queued_log(): void
     {
         $this->seedNotificationSetup();

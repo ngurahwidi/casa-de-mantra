@@ -34,6 +34,7 @@ class ContactController extends Controller
                 villa: $data['villa'] ?? null,
                 propertyName: $profile->name,
                 sender: $profile->mailSender(),
+                logo: $profile->logoForDarkBackground(),
             ));
         }
 

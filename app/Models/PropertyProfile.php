@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Data\Site\BrandLogo;
 use App\Enums\PropertyType;
 use App\Policies\SystemSettingPolicy;
 use App\Support\PhotoRenditions;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -36,6 +38,8 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
     'lng',
     'seo_settings',
     'theme',
+    'logo_path',
+    'logo_dark_path',
     'hero_title',
     'hero_subtitle',
     'bank_account_info',
@@ -53,6 +57,14 @@ class PropertyProfile extends Model implements HasMedia
 
     /** Media collection holding the homepage banner; a new upload replaces the old one. */
     public const HERO = 'hero';
+
+    /** Disk and directory of the uploaded logos. */
+    public const LOGO_DISK = 'public';
+
+    public const LOGO_DIRECTORY = 'branding';
+
+    /** @var list<string> */
+    private const LOGO_COLUMNS = ['logo_path', 'logo_dark_path'];
 
     public const CACHE_KEY = 'property_profile.current';
 
@@ -74,6 +86,17 @@ class PropertyProfile extends Model implements HasMedia
     {
         static::saved(fn () => static::forgetCurrent());
         static::deleted(fn () => static::forgetCurrent());
+
+        // Filament leaves replaced or removed uploads on the disk, so the old logo file goes here.
+        static::updated(function (PropertyProfile $profile): void {
+            foreach (self::LOGO_COLUMNS as $column) {
+                $old = $profile->getOriginal($column);
+
+                if ($profile->wasChanged($column) && filled($old)) {
+                    Storage::disk(self::LOGO_DISK)->delete($old);
+                }
+            }
+        });
     }
 
     /**
@@ -97,6 +120,30 @@ class PropertyProfile extends Model implements HasMedia
         Cache::forget(static::CACHE_KEY);
     }
 
+    public function logoUrl(): ?string
+    {
+        return self::publicUrl($this->logo_path);
+    }
+
+    public function darkLogoUrl(): ?string
+    {
+        return self::publicUrl($this->logo_dark_path);
+    }
+
+    /**
+     * The logo for a dark background: the dark version, or the regular logo on a light badge.
+     */
+    public function logoForDarkBackground(): ?BrandLogo
+    {
+        if (($dark = $this->darkLogoUrl()) !== null) {
+            return new BrandLogo($dark, onLightBadge: false);
+        }
+
+        $logo = $this->logoUrl();
+
+        return $logo === null ? null : new BrandLogo($logo, onLightBadge: true);
+    }
+
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection(self::HERO)->singleFile();
@@ -113,6 +160,11 @@ class PropertyProfile extends Model implements HasMedia
     public function mailSender(): ?Address
     {
         return blank($this->email) ? null : new Address($this->email, $this->name);
+    }
+
+    private static function publicUrl(?string $path): ?string
+    {
+        return blank($path) ? null : Storage::disk(self::LOGO_DISK)->url($path);
     }
 
     /**

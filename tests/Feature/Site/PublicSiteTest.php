@@ -125,6 +125,16 @@ class PublicSiteTest extends TestCase
             ->assertDontSee('A private villa, entirely yours.');
     }
 
+    public function test_header_shows_the_logo_and_footer_the_dark_background_logo(): void
+    {
+        $this->profile->update(['logo_path' => 'branding/logo.png', 'logo_dark_path' => 'branding/logo-white.png']);
+
+        $this->get(route('about'))
+            ->assertOk()
+            ->assertSee('<img src="'.url('/storage/branding/logo.png').'" alt="Casa de Mantra"', false)
+            ->assertSee('<img src="'.url('/storage/branding/logo-white.png').'" alt="Casa de Mantra"', false);
+    }
+
     public function test_homepage_banner_is_the_share_image_except_on_villa_pages(): void
     {
         Storage::fake('public');

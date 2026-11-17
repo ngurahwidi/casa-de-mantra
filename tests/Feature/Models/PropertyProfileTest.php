@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class PropertyProfileTest extends TestCase
@@ -125,5 +126,49 @@ class PropertyProfileTest extends TestCase
         $this->expectException(QueryException::class);
 
         DB::table('property_profiles')->where('id', $profile->id)->update(['type' => 'castle']);
+    }
+
+    public function test_dark_backgrounds_use_the_dark_logo_when_there_is_one(): void
+    {
+        Storage::fake('public');
+        $profile = PropertyProfile::factory()->create(['logo_path' => 'branding/logo.png', 'logo_dark_path' => 'branding/logo-white.png']);
+
+        $logo = $profile->logoForDarkBackground();
+
+        $this->assertSame('/storage/branding/logo-white.png', $logo->url);
+        $this->assertFalse($logo->onLightBadge);
+    }
+
+    public function test_dark_backgrounds_put_the_regular_logo_on_a_light_badge_without_a_dark_logo(): void
+    {
+        Storage::fake('public');
+        $profile = PropertyProfile::factory()->create(['logo_path' => 'branding/logo.png']);
+
+        $logo = $profile->logoForDarkBackground();
+
+        $this->assertSame('/storage/branding/logo.png', $logo->url);
+        $this->assertTrue($logo->onLightBadge);
+    }
+
+    public function test_there_is_no_logo_until_one_is_uploaded(): void
+    {
+        $profile = PropertyProfile::factory()->create();
+
+        $this->assertNull($profile->logoUrl());
+        $this->assertNull($profile->logoForDarkBackground());
+    }
+
+    public function test_replacing_or_removing_a_logo_deletes_the_old_file(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('branding/old.png', 'old');
+        Storage::disk('public')->put('branding/old-white.png', 'old');
+        Storage::disk('public')->put('branding/new.png', 'new');
+        $profile = PropertyProfile::factory()->create(['logo_path' => 'branding/old.png', 'logo_dark_path' => 'branding/old-white.png']);
+
+        $profile->update(['logo_path' => 'branding/new.png', 'logo_dark_path' => null]);
+
+        Storage::disk('public')->assertMissing(['branding/old.png', 'branding/old-white.png']);
+        Storage::disk('public')->assertExists('branding/new.png');
     }
 }

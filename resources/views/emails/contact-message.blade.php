@@ -7,6 +7,13 @@
     <body style="margin:0;padding:24px;background:#F6F2E9;color:#2B312A;font-family:Arial,Helvetica,sans-serif;">
         <div style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #DED8CB;border-radius:12px;overflow:hidden;">
             <div style="background:#2F3B2B;padding:24px 28px;color:#F6F2E9;">
+                @if ($logo)
+                    <div style="margin:0 0 16px;">
+                        <span style="display:inline-block;">
+                            <img src="{{ $logo->url }}" alt="{{ $propertyName }}" height="40" style="display:block;height:40px;width:auto;max-width:200px;border:0;">
+                        </span>
+                    </div>
+                @endif
                 <p style="margin:0;font-size:11px;letter-spacing:2px;text-transform:uppercase;opacity:.7;">{{ $propertyName }}</p>
                 <h1 style="margin:8px 0 0;font-size:24px;font-weight:600;">New enquiry from the website</h1>
             </div>

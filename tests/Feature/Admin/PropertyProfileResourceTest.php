@@ -7,6 +7,8 @@ use App\Filament\Resources\PropertyProfiles\PropertyProfileResource;
 use App\Models\PropertyProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -107,5 +109,35 @@ class PropertyProfileResourceTest extends TestCase
             ]);
 
         $this->assertSame('Casa Demo', $this->profile->fresh()->name);
+    }
+
+    public function test_owner_uploads_the_logos(): void
+    {
+        Storage::fake('public');
+
+        Livewire::test(EditPropertyProfile::class)
+            ->fillForm([
+                'logo_path' => UploadedFile::fake()->image('logo.png', 600, 200),
+                'logo_dark_path' => UploadedFile::fake()->image('logo-white.png', 600, 200),
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $profile = $this->profile->fresh();
+        $this->assertStringStartsWith('branding/', $profile->logo_path);
+        $this->assertStringStartsWith('branding/', $profile->logo_dark_path);
+        Storage::disk('public')->assertExists([$profile->logo_path, $profile->logo_dark_path]);
+    }
+
+    public function test_an_svg_logo_is_rejected(): void
+    {
+        Storage::fake('public');
+
+        Livewire::test(EditPropertyProfile::class)
+            ->fillForm(['logo_path' => UploadedFile::fake()->create('logo.svg', 4, 'image/svg+xml')])
+            ->call('save')
+            ->assertHasFormErrors(['logo_path']);
+
+        $this->assertNull($this->profile->fresh()->logo_path);
     }
 }

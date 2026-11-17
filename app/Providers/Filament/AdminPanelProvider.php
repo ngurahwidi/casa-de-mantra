@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Models\PropertyProfile;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -27,6 +28,11 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            // Read when the page renders, not at boot, so the panel works before the profile exists.
+            ->brandName(fn (): string => self::profile()->name ?? config('app.name'))
+            ->brandLogo(fn (): ?string => self::profile()?->logoUrl())
+            ->darkModeBrandLogo(fn (): ?string => self::profile()?->darkLogoUrl() ?? self::profile()?->logoUrl())
+            ->brandLogoHeight('2.5rem')
             ->colors([
                 'primary' => Color::Amber,
             ])
@@ -53,5 +59,10 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ]);
+    }
+
+    private static function profile(): ?PropertyProfile
+    {
+        return rescue(fn () => PropertyProfile::current(), null, false);
     }
 }

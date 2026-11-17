@@ -2,6 +2,7 @@
 
 @php
     $name = $profile?->name ?? config('app.name');
+    $logo = $profile?->logoForDarkBackground();
     $year = now()->year;
 @endphp
 
@@ -9,6 +10,11 @@
     <div class="site-container py-16 sm:py-20">
         <div class="grid gap-12 border-b border-white/15 pb-12 lg:grid-cols-[1.4fr_1fr_1fr]">
             <div>
+                @if ($logo)
+                    <div @class(['mb-8 inline-flex', 'rounded-xl px-4 py-3' => $logo->onLightBadge])>
+                        <img src="{{ $logo->url }}" alt="{{ $name }}" loading="lazy" class="h-12 w-auto max-w-[14rem] object-contain">
+                    </div>
+                @endif
                 <p class="eyebrow !text-white/60">Stay with us</p>
                 <h2 class="mt-3 max-w-md font-serif text-4xl leading-[1.05] sm:text-5xl">{{ $name }}</h2>
 

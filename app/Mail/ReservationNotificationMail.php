@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Data\Site\BrandLogo;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
@@ -23,6 +24,7 @@ class ReservationNotificationMail extends Mailable
         public readonly string $body,
         public readonly string $propertyName,
         public readonly ?Address $sender = null,
+        public readonly ?BrandLogo $logo = null,
     ) {}
 
     public function envelope(): Envelope

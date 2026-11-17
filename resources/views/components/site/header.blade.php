@@ -2,6 +2,7 @@
 
 @php
     $name = $profile?->name ?? config('app.name');
+    $logoUrl = $profile?->logoUrl();
     $initials = \Illuminate\Support\Str::of($name)
         ->explode(' ')
         ->filter()
@@ -23,12 +24,16 @@
 <header class="sticky top-0 z-30 border-b border-[var(--color-line)]/80 bg-[var(--color-paper)]/95 backdrop-blur">
     <div class="site-container flex h-[4.5rem] items-center justify-between gap-4">
         <a href="{{ route('home') }}" class="flex min-w-0 items-center gap-3">
-            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary)] text-[11px] font-semibold tracking-[0.14em] text-[var(--color-paper)]">
-                {{ $initials }}
-            </span>
-            <span class="min-w-0">
-                <span class="block truncate font-serif text-xl leading-none">{{ $name }}</span>
-            </span>
+            @if ($logoUrl)
+                <img src="{{ $logoUrl }}" alt="{{ $name }}" class="h-10 w-auto max-w-[11rem] object-contain object-left sm:h-11 sm:max-w-[14rem]">
+            @else
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary)] text-[11px] font-semibold tracking-[0.14em] text-[var(--color-paper)]">
+                    {{ $initials }}
+                </span>
+                <span class="min-w-0">
+                    <span class="block truncate font-serif text-xl leading-none">{{ $name }}</span>
+                </span>
+            @endif
         </a>
 
         <nav class="hidden items-center gap-5 lg:flex" aria-label="Main navigation">

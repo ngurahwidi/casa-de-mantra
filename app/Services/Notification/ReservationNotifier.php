@@ -127,6 +127,7 @@ class ReservationNotifier
                 body: $this->renderer->fill($template->body, $variables),
                 propertyName: $profile->name,
                 sender: $profile->mailSender(),
+                logo: $profile->logoForDarkBackground(),
             ));
 
             $locked->update([

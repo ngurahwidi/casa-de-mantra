@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\PropertyProfile;
 use App\Models\User;
 use Database\Seeders\AdminUserSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -21,6 +22,16 @@ class AdminPanelTest extends TestCase
     public function test_login_page_is_reachable(): void
     {
         $this->get('/admin/login')->assertOk();
+    }
+
+    public function test_panel_shows_the_property_logo_and_name(): void
+    {
+        PropertyProfile::factory()->create(['name' => 'Casa de Mantra', 'logo_path' => 'branding/logo.png']);
+
+        $this->get('/admin/login')
+            ->assertOk()
+            ->assertSee('src="'.url('/storage/branding/logo.png').'"', false)
+            ->assertSee('Casa de Mantra');
     }
 
     public function test_seeded_admin_can_open_the_panel(): void

@@ -3,8 +3,10 @@
 namespace App\Filament\Resources\PropertyProfiles\Schemas;
 
 use App\Enums\PropertyType;
+use App\Models\PropertyProfile;
 use DateTimeZone;
 use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -147,7 +149,27 @@ class PropertyProfileForm
                         ColorPicker::make('theme.accent')
                             ->label('Accent color')
                             ->hex(),
+                        self::logoUpload('logo_path')
+                            ->label('Logo')
+                            ->helperText('Shown in the site header and the admin panel. PNG with a transparent background works best.'),
+                        self::logoUpload('logo_dark_path')
+                            ->label('Logo for dark backgrounds')
+                            ->helperText('Optional light (e.g. white) version for the footer, emails and the admin dark mode. Without it, the logo above is shown on a light badge there.'),
                     ]),
             ]);
+    }
+
+    /**
+     * PNG or JPEG only: SVG can carry scripts and, like WebP, does not show in many email clients.
+     */
+    private static function logoUpload(string $column): FileUpload
+    {
+        return FileUpload::make($column)
+            ->image()
+            ->acceptedFileTypes(['image/png', 'image/jpeg'])
+            ->maxSize(2048)
+            ->disk(PropertyProfile::LOGO_DISK)
+            ->directory(PropertyProfile::LOGO_DIRECTORY)
+            ->visibility('public');
     }
 }
