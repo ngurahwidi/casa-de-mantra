@@ -111,6 +111,63 @@ class PublicSiteTest extends TestCase
             ->assertSee('https://wa.me/6281234567890', false);
     }
 
+    public function test_home_page_shows_all_published_reviews_with_a_comment_in_rating_order(): void
+    {
+        Review::factory()->create(['guest_name' => 'Five Star', 'rating' => 5, 'comment' => 'Five star review']);
+        Review::factory()->create(['guest_name' => 'Four Star', 'rating' => 4, 'comment' => 'Four star review']);
+        Review::factory()->create(['guest_name' => 'Three Star', 'rating' => 3, 'comment' => 'Three star review']);
+        Review::factory()->create(['guest_name' => 'One Star', 'rating' => 1, 'comment' => 'One star review']);
+        Review::factory()->unpublished()->create(['guest_name' => 'Hidden Guest', 'rating' => 5, 'comment' => 'Hidden review']);
+        Review::factory()->create(['guest_name' => 'Silent Guest', 'rating' => 5, 'comment' => null]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('data-review-rail', false)
+            ->assertSeeInOrder([
+                'Five star review',
+                'Four star review',
+                'Three star review',
+                'One star review',
+            ])
+            ->assertDontSee('Hidden review')
+            ->assertDontSee('Silent Guest');
+    }
+
+    public function test_the_newest_review_wins_a_tie_on_the_home_page(): void
+    {
+        Review::factory()->create([
+            'rating' => 5,
+            'comment' => 'Oldest five star review',
+            'created_at' => now()->subDays(4),
+        ]);
+        Review::factory()->create([
+            'rating' => 5,
+            'comment' => 'Older five star review',
+            'created_at' => now()->subDays(3),
+        ]);
+        Review::factory()->create([
+            'rating' => 5,
+            'comment' => 'Newer five star review',
+            'created_at' => now()->subDays(2),
+        ]);
+        Review::factory()->create([
+            'rating' => 5,
+            'comment' => 'Newest five star review',
+            'created_at' => now()->subDay(),
+        ]);
+        Review::factory()->create(['rating' => 4, 'comment' => 'Four star review']);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSeeInOrder([
+                'Newest five star review',
+                'Newer five star review',
+                'Older five star review',
+                'Oldest five star review',
+                'Four star review',
+            ]);
+    }
+
     public function test_home_page_hero_shows_the_title_subtitle_and_banner_set_by_the_admin(): void
     {
         Storage::fake('public');

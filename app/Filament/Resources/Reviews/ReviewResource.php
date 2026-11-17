@@ -58,6 +58,7 @@ class ReviewResource extends Resource
                     ->label('Published')
                     ->inline(false),
                 Textarea::make('comment')
+                    ->helperText('The text shown on the home page card. Reviews without a comment are not used there.')
                     ->rows(5)
                     ->columnSpanFull(),
             ]);
