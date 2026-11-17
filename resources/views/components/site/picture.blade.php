@@ -5,7 +5,7 @@
     'priority' => false,
 ])
 
-@php($srcset = \App\Models\RoomType::photoSrcset($media))
+@php($srcset = \App\Support\PhotoRenditions::srcset($media))
 
 <picture>
     @if ($srcset !== '')

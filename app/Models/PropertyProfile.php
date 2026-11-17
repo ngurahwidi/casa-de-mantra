@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PropertyType;
 use App\Policies\SystemSettingPolicy;
+use App\Support\PhotoRenditions;
 use Database\Factories\PropertyProfileFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
@@ -11,6 +12,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Support\Facades\Cache;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * @property PropertyType $type
@@ -32,18 +36,23 @@ use Illuminate\Support\Facades\Cache;
     'lng',
     'seo_settings',
     'theme',
+    'hero_title',
+    'hero_subtitle',
     'bank_account_info',
     'payment_window_hours',
     'pending_reminder_hours',
     'confirm_on_deposit',
 ])]
 #[UsePolicy(SystemSettingPolicy::class)]
-class PropertyProfile extends Model
+class PropertyProfile extends Model implements HasMedia
 {
     /** @use HasFactory<PropertyProfileFactory> */
-    use HasFactory;
+    use HasFactory, InteractsWithMedia;
 
     public const ID = 1;
+
+    /** Media collection holding the homepage banner; a new upload replaces the old one. */
+    public const HERO = 'hero';
 
     public const CACHE_KEY = 'property_profile.current';
 
@@ -86,6 +95,16 @@ class PropertyProfile extends Model
     public static function forgetCurrent(): void
     {
         Cache::forget(static::CACHE_KEY);
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection(self::HERO)->singleFile();
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        PhotoRenditions::register($this, self::HERO);
     }
 
     /**

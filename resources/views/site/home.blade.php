@@ -2,10 +2,10 @@
 
 @section('content')
     <section class="relative isolate min-h-[34rem] overflow-hidden bg-[var(--color-primary)] text-white sm:min-h-[40rem]">
-        @if ($heroPhoto)
+        @if ($hero->banner)
             <x-site.picture
-                :media="$heroPhoto"
-                :alt="$heroPhoto->getCustomProperty('alt') ?: ($profile?->name ?? 'Villa')"
+                :media="$hero->banner"
+                :alt="$hero->bannerAlt"
                 sizes="100vw"
                 priority
                 class="absolute inset-0 -z-20 h-full w-full object-cover"
@@ -17,10 +17,10 @@
 
         <div class="site-container relative flex min-h-[34rem] flex-col justify-end pb-14 pt-24 sm:min-h-[40rem] sm:pb-20">
             <h1 class="mt-5 max-w-3xl text-balance font-serif text-[2.85rem] leading-[0.98] sm:text-6xl lg:text-7xl">
-                A private villa,<br class="hidden sm:block"> entirely yours.
+                {{ $hero->title }}
             </h1>
             <p class="mt-5 max-w-xl text-pretty text-sm leading-7 text-white/80 sm:text-base">
-                {{ data_get($profile, 'seo_settings.meta_description') ?: 'Slow mornings, long afternoons by the pool, and evenings that stretch a little further. Book directly with the people who look after the villa.' }}
+                {{ $hero->subtitle }}
             </p>
 
             <div class="mt-8 w-full">

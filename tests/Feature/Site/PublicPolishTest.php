@@ -5,6 +5,7 @@ namespace Tests\Feature\Site;
 use App\Models\Page;
 use App\Models\PropertyProfile;
 use App\Models\RoomType;
+use App\Support\PhotoRenditions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -47,8 +48,8 @@ class PublicPolishTest extends TestCase
 
         $media = $this->upload(2400, 1600);
 
-        foreach (RoomType::PHOTO_WIDTHS as $width) {
-            $conversion = RoomType::photoConversion($width);
+        foreach (PhotoRenditions::WIDTHS as $width) {
+            $conversion = PhotoRenditions::conversion($width);
 
             $this->assertTrue($media->fresh()->hasGeneratedConversion($conversion));
 
@@ -65,7 +66,7 @@ class PublicPolishTest extends TestCase
 
         $media = $this->upload(600, 400);
 
-        [$actualWidth] = getimagesize($media->getPath(RoomType::photoConversion(1920)));
+        [$actualWidth] = getimagesize($media->getPath(PhotoRenditions::conversion(1920)));
 
         $this->assertSame(600, $actualWidth);
     }
@@ -73,8 +74,8 @@ class PublicPolishTest extends TestCase
     public function test_photos_are_served_as_responsive_webp_with_the_original_as_fallback(): void
     {
         $this->photo('pool.jpg', [
-            RoomType::photoConversion(480) => true,
-            RoomType::photoConversion(800) => true,
+            PhotoRenditions::conversion(480) => true,
+            PhotoRenditions::conversion(800) => true,
         ]);
 
         $this->get(route('gallery'))
