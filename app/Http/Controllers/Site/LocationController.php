@@ -13,7 +13,7 @@ class LocationController extends Controller
         return view('site.location', [
             'title' => 'Location',
             'description' => 'Find the villa, plan your arrival, and ask us about transfers or directions.',
-            'page' => Page::published()->where('slug', 'location')->first(),
+            'page' => Page::published()->where('slug', Page::LOCATION)->first(),
         ]);
     }
 }

@@ -28,7 +28,7 @@ class PageForm
                         }
                     }),
                 TextInput::make('slug')
-                    ->helperText('Used in the page address, e.g. /policies/cancellation.')
+                    ->helperText('Used in the page address, e.g. /policies/cancellation. Use "about" or "location" to fill the About or Location page instead of adding a policy.')
                     ->required()
                     ->maxLength(191)
                     ->alphaDash()

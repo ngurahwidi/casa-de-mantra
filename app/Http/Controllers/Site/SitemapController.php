@@ -13,7 +13,7 @@ class SitemapController extends Controller
     {
         return response()->view('site.sitemap', [
             'villas' => RoomType::query()->published()->orderBy('name')->get(),
-            'pages' => Page::query()->published()->orderBy('title')->get(),
+            'pages' => Page::query()->published()->policies()->orderBy('title')->get(),
         ])->header('Content-Type', 'application/xml; charset=UTF-8');
     }
 }

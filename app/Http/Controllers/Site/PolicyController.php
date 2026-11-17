@@ -14,13 +14,13 @@ class PolicyController extends Controller
         return view('site.policies.index', [
             'title' => 'Policies',
             'description' => 'Read the cancellation, privacy, and house policies before sending a booking request.',
-            'pages' => Page::published()->orderBy('title')->get(),
+            'pages' => Page::published()->policies()->orderBy('title')->get(),
         ]);
     }
 
     public function show(Page $page): View
     {
-        abort_unless($page->is_published, 404);
+        abort_unless($page->is_published && $page->isPolicy(), 404);
 
         return view('site.policies.show', [
             'title' => $page->title,

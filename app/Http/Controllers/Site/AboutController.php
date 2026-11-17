@@ -17,7 +17,7 @@ class AboutController extends Controller
         return view('site.about', [
             'title' => 'About',
             'description' => 'Meet the villa and the small team who look after it, and see what is already here for your stay.',
-            'page' => Page::published()->where('slug', 'about')->first(),
+            'page' => Page::published()->where('slug', Page::ABOUT)->first(),
             'villas' => $villas,
             'amenities' => $villas
                 ->flatMap(fn ($villa) => $villa->amenities)

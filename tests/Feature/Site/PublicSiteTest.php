@@ -219,6 +219,22 @@ class PublicSiteTest extends TestCase
         $this->get(route('policies.show', $hidden->slug))->assertNotFound();
     }
 
+    public function test_about_and_location_pages_are_not_listed_or_shown_as_policies(): void
+    {
+        Page::factory()->create(['slug' => 'house-rules', 'title' => 'House Rules']);
+        Page::factory()->create(['slug' => Page::ABOUT, 'title' => 'Our story']);
+        Page::factory()->create(['slug' => Page::LOCATION, 'title' => 'Getting here']);
+
+        $this->get(route('policies.index'))
+            ->assertOk()
+            ->assertSee('House Rules')
+            ->assertDontSee('Our story')
+            ->assertDontSee('Getting here');
+
+        $this->get(route('policies.show', Page::ABOUT))->assertNotFound();
+        $this->get(route('policies.show', Page::LOCATION))->assertNotFound();
+    }
+
     public function test_faq_page_renders_faq_structured_data(): void
     {
         Faq::factory()->create(['question' => 'Is parking available?', 'answer' => 'Yes, on site.']);
@@ -234,6 +250,7 @@ class PublicSiteTest extends TestCase
     {
         $page = Page::factory()->create(['slug' => 'terms', 'title' => 'Terms', 'is_published' => true]);
         $hidden = Page::factory()->unpublished()->create(['slug' => 'draft']);
+        Page::factory()->create(['slug' => Page::ABOUT]);
 
         $this->get('/sitemap.xml')
             ->assertOk()
@@ -241,7 +258,8 @@ class PublicSiteTest extends TestCase
             ->assertSee(route('home'), false)
             ->assertSee(route('villas.show', $this->villa->slug), false)
             ->assertSee(route('policies.show', $page->slug), false)
-            ->assertDontSee(route('policies.show', $hidden->slug), false);
+            ->assertDontSee(route('policies.show', $hidden->slug), false)
+            ->assertDontSee(route('policies.show', Page::ABOUT), false);
     }
 
     public function test_robots_points_to_the_sitemap_and_blocks_admin(): void
