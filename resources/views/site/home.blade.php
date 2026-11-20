@@ -1,7 +1,7 @@
 @extends('layouts.public')
 
 @section('content')
-    <section class="relative isolate min-h-[34rem] overflow-hidden bg-[var(--color-primary)] text-white sm:min-h-[40rem]">
+    <section class="relative isolate z-10 min-h-[34rem] bg-[var(--color-primary)] text-white sm:min-h-[40rem]">
         @if ($hero->banner)
             <x-site.picture
                 :media="$hero->banner"

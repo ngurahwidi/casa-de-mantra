@@ -73,6 +73,103 @@ class HomeSearchTest extends TestCase
             ->assertSee('Check availability');
     }
 
+    public function test_home_page_uses_a_month_calendar_without_native_date_inputs(): void
+    {
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSeeHtml('id="home-search-calendar"')
+            ->assertSee('November 2026')
+            ->assertDontSeeHtml('type="date"');
+    }
+
+    public function test_calendar_picks_a_check_in_then_a_check_out(): void
+    {
+        Livewire::test(HomeSearch::class, ['maxGuests' => 6])
+            ->assertSet('month', '2026-11')
+            ->call('selectDate', '2026-12-03')
+            ->assertSet('checkIn', '2026-12-03')
+            ->assertSet('checkOut', '')
+            ->call('selectDate', '2026-12-06')
+            ->assertSet('checkOut', '2026-12-06')
+            ->call('selectDate', '2026-12-10')
+            ->assertSet('checkIn', '2026-12-10')
+            ->assertSet('checkOut', '');
+    }
+
+    public function test_calendar_will_not_end_a_stay_on_a_blocked_night(): void
+    {
+        AvailabilityBlock::factory()->for($this->unit)->create([
+            'start_date' => '2026-12-04',
+            'end_date' => '2026-12-06',
+        ]);
+
+        $component = Livewire::test(HomeSearch::class, ['maxGuests' => 6])
+            ->call('selectDate', '2026-12-03');
+
+        $component->call('selectDate', '2026-12-06')->assertSet('checkOut', '');
+
+        $component
+            ->call('selectDate', '2026-12-03')
+            ->call('selectDate', '2026-12-04')
+            ->assertSet('checkOut', '2026-12-04');
+    }
+
+    public function test_a_night_blocked_on_the_only_villa_cannot_start_a_stay(): void
+    {
+        AvailabilityBlock::factory()->for($this->unit)->create([
+            'start_date' => '2026-12-04',
+            'end_date' => '2026-12-06',
+        ]);
+
+        Livewire::test(HomeSearch::class, ['maxGuests' => 6])
+            ->call('selectDate', '2026-12-04')
+            ->assertSet('checkIn', '');
+    }
+
+    public function test_calendar_navigation_stays_inside_the_booking_window(): void
+    {
+        Livewire::test(HomeSearch::class, ['maxGuests' => 6])
+            ->call('previousMonth')
+            ->assertSet('month', '2026-11')
+            ->call('nextMonth')
+            ->assertSet('month', '2026-12');
+    }
+
+    public function test_check_out_box_changes_the_check_out_date_without_restarting(): void
+    {
+        Livewire::test(HomeSearch::class, ['maxGuests' => 6])
+            ->call('selectDate', '2026-12-03')
+            ->call('selectDate', '2026-12-06')
+            ->call('selectDate', '2026-12-09', 'out')
+            ->assertSet('checkIn', '2026-12-03')
+            ->assertSet('checkOut', '2026-12-09');
+    }
+
+    public function test_check_out_box_starts_a_new_stay_when_the_date_is_before_the_check_in(): void
+    {
+        Livewire::test(HomeSearch::class, ['maxGuests' => 6])
+            ->call('selectDate', '2026-12-06')
+            ->call('selectDate', '2026-12-09')
+            ->call('selectDate', '2026-12-02', 'out')
+            ->assertSet('checkIn', '2026-12-02')
+            ->assertSet('checkOut', '');
+    }
+
+    public function test_check_out_box_refuses_a_date_that_crosses_a_blocked_night(): void
+    {
+        AvailabilityBlock::factory()->for($this->unit)->create([
+            'start_date' => '2026-12-04',
+            'end_date' => '2026-12-06',
+        ]);
+
+        Livewire::test(HomeSearch::class, ['maxGuests' => 6])
+            ->call('selectDate', '2026-12-03')
+            ->call('selectDate', '2026-12-06', 'out')
+            ->assertSet('checkIn', '2026-12-03')
+            ->assertSet('checkOut', '')
+            ->assertHasErrors(['checkOut']);
+    }
+
     public function test_searching_redirects_to_the_villa_list_with_the_dates_and_guests(): void
     {
         Livewire::test(HomeSearch::class, ['maxGuests' => 6])
