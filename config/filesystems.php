@@ -47,6 +47,16 @@ return [
             'report' => false,
         ],
 
+        // Backups of the database and uploaded files (T12.4). Inside storage/app, which git ignores,
+        // but outside the public and private folders that are backed up. Copy them off the server
+        // as well, either by adding s3 to BACKUP_DISKS or with the server's own backup.
+        'backups' => [
+            'driver' => 'local',
+            'root' => storage_path('app/backups'),
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

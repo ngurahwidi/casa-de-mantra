@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Maintenance\CheckSystemHealth;
 use App\Actions\Maintenance\PruneTemporaryUploads;
 use App\Actions\Outbox\ProcessOutboxEvents;
 use App\Actions\Reservation\CompleteReservation;
@@ -50,6 +51,19 @@ Artisan::command('uploads:prune', function (PruneTemporaryUploads $prune): void 
     $this->info("Deleted {$proofs} unsaved transfer proof(s) and {$temporary} temporary upload(s).");
 })->purpose('Delete uploaded files that were never saved to a record');
 
+Artisan::command('system:health', function (CheckSystemHealth $check): void {
+    $problems = $check->handle();
+
+    foreach ($problems as $problem) {
+        report($problem);
+        $this->error($problem->getMessage());
+    }
+
+    if ($problems === []) {
+        $this->info('All system health checks passed.');
+    }
+})->purpose('Check disk space, the database, failed jobs and the queue, and report problems to Sentry');
+
 Schedule::command('reservations:expire')->everyTenMinutes()->withoutOverlapping();
 
 /*
@@ -68,3 +82,32 @@ Schedule::command('model:prune', [
 ])->daily()->withoutOverlapping();
 
 Schedule::command('uploads:prune')->daily()->withoutOverlapping();
+
+/*
+|--------------------------------------------------------------------------
+| Monitoring and backups (T12.4)
+|--------------------------------------------------------------------------
+|
+| system:health reports each problem it finds as its own Sentry issue and still exits successfully,
+| so its Sentry cron monitor only answers "is the scheduler running?". It is the single monitor
+| included in Sentry's free plan: when cron, the scheduler or the server stops, Sentry raises a
+| missed check-in. The jobs above have no monitor of their own; their exceptions still reach
+| Sentry as issues.
+|
+| Backups run at night in the property's region (the times are UTC). backup:run makes a gzipped
+| MySQL dump plus the uploaded files, and backup:monitor checks that the newest backup is less
+| than a day old. Failures are emailed (config/backup.php) and reported to Sentry
+| (App\Listeners\ReportBackupProblems).
+|
+*/
+
+Schedule::command('system:health')
+    ->hourly()
+    ->withoutOverlapping()
+    ->sentryMonitor(monitorSlug: 'system-health', checkInMargin: 15, maxRuntime: 10);
+
+Schedule::command('backup:clean')->dailyAt('17:00')->withoutOverlapping();
+
+Schedule::command('backup:run')->dailyAt('17:30')->withoutOverlapping();
+
+Schedule::command('backup:monitor')->dailyAt('19:00')->withoutOverlapping();

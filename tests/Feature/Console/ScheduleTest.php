@@ -4,6 +4,7 @@ namespace Tests\Feature\Console;
 
 use App\Enums\OutboxEventStatus;
 use App\Enums\ReservationStatus;
+use App\Exceptions\Monitoring\LowDiskSpaceException;
 use App\Models\OutboxEvent;
 use App\Models\Payment;
 use App\Models\PropertyProfile;
@@ -11,6 +12,7 @@ use App\Models\Reservation;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -38,6 +40,10 @@ class ScheduleTest extends TestCase
                 '0 0 * * *',
             ],
             'prune unsaved uploads daily' => ['uploads:prune', '0 0 * * *'],
+            'check system health hourly' => ['system:health', '0 * * * *'],
+            'clean old backups daily before the backup' => ['backup:clean', '0 17 * * *'],
+            'back up the database and uploads daily' => ['backup:run', '30 17 * * *'],
+            'check the newest backup daily after the backup' => ['backup:monitor', '0 19 * * *'],
         ];
     }
 
@@ -107,5 +113,29 @@ class ScheduleTest extends TestCase
         $this->artisan('uploads:prune')
             ->expectsOutput('Deleted 0 unsaved transfer proof(s) and 0 temporary upload(s).')
             ->assertSuccessful();
+    }
+
+    public function test_the_health_command_reports_each_problem_and_still_succeeds(): void
+    {
+        Exceptions::fake();
+        config(['monitoring.min_free_disk_percent' => 100]);
+
+        $this->artisan('system:health')
+            ->expectsOutputToContain('of the disk holding')
+            ->assertSuccessful();
+
+        Exceptions::assertReported(LowDiskSpaceException::class);
+    }
+
+    public function test_the_health_command_says_so_when_everything_is_healthy(): void
+    {
+        Exceptions::fake();
+        config(['monitoring.min_free_disk_percent' => 0]);
+
+        $this->artisan('system:health')
+            ->expectsOutput('All system health checks passed.')
+            ->assertSuccessful();
+
+        Exceptions::assertNothingReported();
     }
 }

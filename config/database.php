@@ -62,6 +62,12 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
+            // Used by backup:run (spatie/laravel-backup). Every table is InnoDB, so one consistent
+            // snapshot is taken without locking tables while guests keep booking.
+            'dump' => [
+                'use_single_transaction',
+                'timeout' => 60 * 5,
+            ],
         ],
 
         'mariadb' => [
