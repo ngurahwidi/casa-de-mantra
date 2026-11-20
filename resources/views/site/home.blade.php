@@ -220,35 +220,23 @@
                     tabindex="0"
                 >
                     @foreach ($reviews as $review)
-                        <article
-                            class="flex w-[85%] shrink-0 flex-col rounded-2xl border border-[var(--color-line)] bg-[#FCFAF4] p-6 shadow-sm sm:w-[calc((100%_-_3rem)/2.25)] sm:p-7 lg:w-[calc((100%_-_4.5rem)/3.25)] {{ $loop->last ? 'snap-end' : 'snap-start' }}"
-                            data-review-card
-                        >
-                            <div class="flex items-center gap-1 text-[var(--color-rating)]" aria-label="{{ $review->rating }} out of 5 stars">
-                                @for ($i = 1; $i <= 5; $i++)
-                                    <svg class="h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="{{ $i <= $review->rating ? 'currentColor' : 'none' }}" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
-                                        <path d="M10 1.8l2.5 5.2 5.7.8-4.1 4 1 5.7-5.1-2.7-5.1 2.7 1-5.7-4.1-4 5.7-.8L10 1.8z" />
-                                    </svg>
-                                @endfor
-                            </div>
-
-                            <blockquote class="mt-5 flex-1">
-                                <p class="line-clamp-6 text-sm leading-7 text-[var(--color-ink)]/90">“{{ $review->comment }}”</p>
-                            </blockquote>
-
-                            <div class="mt-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t border-[var(--color-line)] pt-4">
-                                <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-ink)]">{{ $review->guest_name }}</p>
-                                @if ($review->source)
-                                    <p class="text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)]">via {{ $review->source }}</p>
-                                @endif
-                            </div>
-                        </article>
+                        <x-site.review-card
+                            :review="$review"
+                            class="w-[85%] shrink-0 sm:w-[calc((100%_-_3rem)/2.25)] sm:p-7 lg:w-[calc((100%_-_4.5rem)/3.25)] {{ $loop->last ? 'snap-end' : 'snap-start' }}"
+                        />
                     @endforeach
                 </div>
 
-                <p class="mt-3 text-[10px] uppercase tracking-[0.16em] text-[var(--color-muted)] sm:hidden" data-review-hint>
-                    Swipe to read more
-                </p>
+                @if ($allReviews->count() > $reviews->count())
+                    <div class="mt-8 flex justify-center">
+                        <a href="{{ route('reviews.index') }}" class="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-primary)] transition hover:gap-3">
+                            View all reviews
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+                            </svg>
+                        </a>
+                    </div>
+                @endif
             </div>
         </section>
     @endif

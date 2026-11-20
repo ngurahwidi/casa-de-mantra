@@ -55,7 +55,8 @@ class HomeController extends Controller
                     ]))
                 ->take(6)
                 ->values(),
-            'reviews' => $homeReviews->select(),
+            'reviews' => $homeReviews->select()->take(6),
+            'allReviews' => $homeReviews->all(),
             'faqs' => Faq::ordered()->limit(4)->get(),
         ]);
     }

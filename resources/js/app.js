@@ -46,14 +46,9 @@ document.querySelectorAll('[data-review-slider]').forEach((section) => {
 
     const syncControls = () => {
         const maxScrollLeft = rail.scrollWidth - rail.clientWidth;
-        const hint = section.querySelector('[data-review-hint]');
 
         if (controls instanceof HTMLElement) {
             controls.style.display = maxScrollLeft > 1 ? '' : 'none';
-        }
-
-        if (hint instanceof HTMLElement) {
-            hint.style.display = maxScrollLeft > 1 ? '' : 'none';
         }
 
         section.querySelector('[data-review-scroll="prev"]')?.toggleAttribute('disabled', rail.scrollLeft <= 1);

@@ -9,6 +9,7 @@ use App\Http\Controllers\Site\GalleryController;
 use App\Http\Controllers\Site\HomeController;
 use App\Http\Controllers\Site\LocationController;
 use App\Http\Controllers\Site\PolicyController;
+use App\Http\Controllers\Site\ReviewsController;
 use App\Http\Controllers\Site\RobotsController;
 use App\Http\Controllers\Site\SitemapController;
 use App\Http\Controllers\Site\VillaController;
@@ -37,6 +38,7 @@ Route::post('/booking/status/forget', [BookingStatusController::class, 'forget']
 Route::get('/gallery', GalleryController::class)->name('gallery');
 Route::get('/location', LocationController::class)->name('location');
 Route::get('/about', AboutController::class)->name('about');
+Route::get('/reviews', ReviewsController::class)->name('reviews.index');
 
 Route::get('/contact', [ContactController::class, 'show'])->name('contact');
 Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');

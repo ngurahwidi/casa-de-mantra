@@ -22,11 +22,24 @@ class Review extends Model
     use HasFactory, HasUuids;
 
     /**
+     * Shown when a review has no written comment (empty string or null).
+     */
+    public const DEFAULT_COMMENT = 'A charming homestay with genuine Balinese warmth, perfect for a calm and easy stay in Nusa Dua.';
+
+    /**
      * @param  Builder<Review>  $query
      */
     public function scopePublished(Builder $query): void
     {
         $query->where('is_published', true);
+    }
+
+    /**
+     * The comment to display, falling back to a default when the review has none.
+     */
+    public function displayComment(): string
+    {
+        return filled($this->comment) ? $this->comment : self::DEFAULT_COMMENT;
     }
 
     /**

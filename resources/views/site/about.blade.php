@@ -113,23 +113,20 @@
 
                 <div class="mt-10 grid gap-6 md:grid-cols-3">
                     @foreach ($reviews as $review)
-                        <figure class="rounded-2xl border border-[var(--color-line)] bg-[#FCFAF4] p-6">
-                            <div class="flex items-center gap-1 text-[var(--color-primary)]" aria-label="{{ $review->rating }} out of 5 stars">
-                                @for ($i = 1; $i <= 5; $i++)
-                                    <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="{{ $i <= $review->rating ? 'currentColor' : 'none' }}" stroke="currentColor" stroke-width="1" aria-hidden="true">
-                                        <path d="M10 1.8l2.5 5.2 5.7.8-4.1 4 1 5.7-5.1-2.7-5.1 2.7 1-5.7-4.1-4 5.7-.8L10 1.8z" />
-                                    </svg>
-                                @endfor
-                            </div>
-                            <blockquote class="mt-4 font-serif text-xl leading-snug">
-                                “{{ $review->comment ?: 'A lovely stay.' }}”
-                            </blockquote>
-                            <figcaption class="mt-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-muted)]">
-                                {{ $review->guest_name }}{{ $review->source ? ' · '.$review->source : '' }}
-                            </figcaption>
-                        </figure>
+                        <x-site.review-card :review="$review" />
                     @endforeach
                 </div>
+
+                @if ($allReviews->count() > $reviews->count())
+                    <div class="mt-8 flex justify-center">
+                        <a href="{{ route('reviews.index') }}" class="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-primary)] transition hover:gap-3">
+                            View all reviews
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+                            </svg>
+                        </a>
+                    </div>
+                @endif
             </div>
         </section>
     @endif
