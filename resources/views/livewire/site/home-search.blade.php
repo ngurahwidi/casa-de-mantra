@@ -9,6 +9,8 @@
     x-on:click.outside="open = false"
     x-on:keydown.escape.window="open = false"
     x-on:home-search-complete.window="open = false"
+    x-on:resize.window="if (open && window.innerWidth >= 1024) open = false"
+    x-effect="document.body.classList.toggle('overflow-hidden', open && window.matchMedia('(max-width: 1023px)').matches)"
 >
     <div class="grid overflow-hidden rounded-xl border border-[var(--color-line)]/60 sm:grid-cols-3 lg:grid-cols-[1fr_1fr_1fr_auto] lg:divide-x lg:divide-[var(--color-line)]">
         {{-- Check-in --}}
@@ -93,16 +95,45 @@
         </div>
     </div>
 
+    {{-- Mobile backdrop --}}
+    <div
+        x-cloak
+        x-show="open"
+        x-transition.opacity.duration.150ms
+        x-on:click="open = false"
+        class="fixed inset-0 z-40 bg-black/40 lg:hidden"
+        aria-hidden="true"
+    ></div>
+
     {{-- Calendar --}}
     <div
         id="home-search-calendar"
         x-cloak
         x-show="open"
-        x-transition.opacity.duration.150ms
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="translate-y-full opacity-0 lg:translate-y-0"
+        x-transition:enter-end="translate-y-0 opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="translate-y-0 opacity-100"
+        x-transition:leave-end="translate-y-full opacity-0 lg:translate-y-0"
         role="dialog"
         aria-label="Choose your dates"
-        class="absolute left-0 top-full z-50 mt-3 w-[21rem] max-w-[calc(100vw-2rem)] rounded-2xl border border-[var(--color-line)] bg-[var(--color-paper)] p-4 shadow-2xl shadow-black/25"
+        class="fixed inset-x-0 bottom-0 z-50 mx-auto max-h-[85dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-2xl border-t border-[var(--color-line)] bg-[var(--color-paper)] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-2xl shadow-black/25 lg:absolute lg:inset-auto lg:left-0 lg:top-full lg:mx-0 lg:mt-3 lg:max-h-none lg:w-[21rem] lg:max-w-[calc(100vw-2rem)] lg:overflow-visible lg:rounded-2xl lg:border lg:pb-4"
     >
+        <div class="relative mb-3 flex items-center justify-center lg:hidden">
+            <span class="h-1 w-10 rounded-full bg-[var(--color-line)]" aria-hidden="true"></span>
+            <button
+                type="button"
+                x-on:click="open = false"
+                class="absolute right-0 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-[var(--color-muted)] transition hover:bg-[var(--color-paper-deep)] hover:text-[var(--color-ink)]"
+                aria-label="Close calendar"
+            >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+                </svg>
+            </button>
+        </div>
+
         <div class="flex items-center justify-between gap-2">
             <button
                 type="button"
