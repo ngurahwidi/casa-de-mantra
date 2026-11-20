@@ -133,6 +133,33 @@ class PublicSiteTest extends TestCase
             ->assertDontSee('Silent Guest');
     }
 
+    public function test_home_page_links_to_the_reviews_page_when_more_than_six_reviews(): void
+    {
+        Review::factory()->count(7)->create(['comment' => 'A wonderful and restful stay.']);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('View all reviews')
+            ->assertSee(route('reviews.index'), false);
+    }
+
+    public function test_reviews_page_lists_all_reviews_with_recommendations_and_amenities(): void
+    {
+        Review::factory()->create(['guest_name' => 'Five Star', 'rating' => 5, 'comment' => 'Five star review']);
+        Review::factory()->create(['guest_name' => 'Silent Guest', 'rating' => 4, 'comment' => null]);
+        Review::factory()->unpublished()->create(['guest_name' => 'Hidden Guest', 'rating' => 5, 'comment' => 'Hidden review']);
+
+        $this->get(route('reviews.index'))
+            ->assertOk()
+            ->assertSee('Five star review')
+            ->assertSee('Silent Guest')
+            ->assertSee(Review::DEFAULT_COMMENT)
+            ->assertDontSee('Hidden review')
+            ->assertSee('Villa Aruna')
+            ->assertSee('Private swimming pool')
+            ->assertSee('Send an enquiry');
+    }
+
     public function test_the_newest_review_wins_a_tie_on_the_home_page(): void
     {
         Review::factory()->create([
@@ -254,6 +281,7 @@ class PublicSiteTest extends TestCase
             'gallery' => ['/gallery'],
             'location' => ['/location'],
             'about' => ['/about'],
+            'reviews' => ['/reviews'],
             'contact' => ['/contact'],
             'faq' => ['/faq'],
             'policies index' => ['/policies'],

@@ -24,6 +24,7 @@
         route('gallery') => 0.7,
         route('location') => 0.7,
         route('about') => 0.7,
+        route('reviews.index') => 0.6,
         route('faq') => 0.6,
         route('contact') => 0.6,
         route('policies.index') => 0.4,
